@@ -1,0 +1,17 @@
+{
+  "name": "天象志 · 可探索的星空图鉴",
+  "short_name": "天象志",
+  "description": "收录星座连线、东西方故事与北半球观测线索的中文星空图鉴。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#090a0d",
+  "theme_color": "#090a0d",
+  "icons": [
+    {
+      "src": "assets/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
