@@ -165,7 +165,7 @@
 
 ### 当前完成情况
 
-- 已准备 GitHub Actions 自动校验工作流；待登录凭据增加 `workflow` 权限后提交到远端。
+- 已加入 GitHub Actions 自动执行内容、星图、故事、观测数据、站点引用和运行时冒烟检查。
 - 已加入 Web App Manifest、Service Worker、离线缓存、安装入口、离线状态提示和版本更新提示。
 - 已加入 `robots.txt`、`sitemap.xml`、规范链接、Open Graph、Twitter Card 和结构化数据。
 - 已将故事资料库与观测助手改为接近视口时加载，减少首次页面负担。
