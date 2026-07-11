@@ -61,6 +61,7 @@ const state = {
   showDeepSky: false,
   magnitudeLimit: 6,
   hemisphere: "all",
+  favoritesOnly: false,
   favorites: new Set(),
 };
 
@@ -71,6 +72,7 @@ const dom = {
   search: document.querySelector("#constellationSearch"),
   seasonFilter: document.querySelector("#seasonFilter"),
   visibilityFilter: document.querySelector("#visibilityFilter"),
+  favoritesOnly: document.querySelector("#favoritesOnly"),
   resultCount: document.querySelector("#resultCount"),
   list: document.querySelector("#constellationList"),
   celestialMap: document.querySelector("#celestialMap"),
@@ -146,11 +148,28 @@ const dom = {
   dossierObservation: document.querySelector("#dossierObservation"),
   dossierMeta: document.querySelector("#dossierMeta"),
   sourceList: document.querySelector("#sourceList"),
+  relatedTopicLinks: document.querySelector("#relatedTopicLinks"),
+  installApp: document.querySelector("#installApp"),
+  networkStatus: document.querySelector("#networkStatus"),
+  retryStoryLoad: document.querySelector("#retryStoryLoad"),
+  retryObservingLoad: document.querySelector("#retryObservingLoad"),
 };
 
 let celestialAtlas;
 let observingAssistant;
 let storyLibrary;
+let revealAnimationsReady = false;
+let deferredInstallPrompt = null;
+let observingLoadPromise = null;
+let storyLoadPromise = null;
+let storyLoadFailed = false;
+const STORY_FEATURE_SCRIPTS = ["data/story-topics.js", "data/story-topics-extra.js", "story-library.js"];
+const OBSERVING_FEATURE_SCRIPTS = ["data/observing-data.js", "observing.js"];
+
+const revealFallbackTimer = window.setTimeout(() => {
+  if (revealAnimationsReady) return;
+  document.querySelectorAll(".reveal").forEach((element) => element.classList.add("is-visible"));
+}, 1800);
 
 function activeConstellation() {
   return CONSTELLATIONS.find((item) => item.id === state.activeId) || CONSTELLATIONS[0];
@@ -196,6 +215,7 @@ function saveFavorites() {
 }
 
 function renderList() {
+  const focusedId = dom.list.contains(document.activeElement) ? document.activeElement.dataset.id : null;
   const query = state.search.trim().toLowerCase();
   const filtered = CONSTELLATIONS.filter((item) => {
     const matchesSeason = state.season === "all" || item.season === state.season;
@@ -205,35 +225,68 @@ function renderList() {
       || (state.visibility === "south" && visibility.includes("华南"))
       || (state.visibility === "far-south" && visibility.includes("不可见"));
     const searchText = `${item.name} ${item.latin} ${item.abbr} ${item.glyph} ${item.profile.meaning}`.toLowerCase();
-    return matchesSeason && matchesVisibility && searchText.includes(query);
+    const matchesFavorites = !state.favoritesOnly || state.favorites.has(item.id);
+    return matchesSeason && matchesVisibility && matchesFavorites && searchText.includes(query);
   });
 
   dom.list.replaceChildren();
   dom.resultCount.textContent = `${filtered.length} / ${CONSTELLATIONS.length}`;
+  dom.favoritesOnly.classList.toggle("is-active", state.favoritesOnly);
+  dom.favoritesOnly.textContent = state.favoritesOnly ? "★" : "☆";
+  dom.favoritesOnly.setAttribute("aria-pressed", String(state.favoritesOnly));
+  dom.favoritesOnly.setAttribute("aria-label", state.favoritesOnly ? "显示全部星座" : "只看收藏");
+  dom.favoritesOnly.title = state.favoritesOnly ? "显示全部星座" : "只看收藏";
 
   if (filtered.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-list";
-    empty.textContent = "没有找到匹配的星座。";
+    empty.textContent = state.favoritesOnly ? "还没有符合当前条件的收藏星座。" : "没有找到匹配的星座。";
     dom.list.append(empty);
     return;
   }
 
-  filtered.forEach((item) => {
+  filtered.forEach((item, filteredIndex) => {
     const originalIndex = CONSTELLATIONS.findIndex((entry) => entry.id === item.id);
+    const isFavorite = state.favorites.has(item.id);
     const button = document.createElement("button");
     button.type = "button";
     button.className = `constellation-item${item.id === state.activeId ? " is-active" : ""}`;
     button.dataset.id = item.id;
     button.setAttribute("aria-pressed", String(item.id === state.activeId));
-    button.innerHTML = `
-      <span class="list-number">${padNumber(originalIndex + 1)}</span>
-      <span class="list-name"><strong>${item.name}</strong><small>${item.abbr} · ${item.latin}</small></span>
-      <span class="list-favorite" aria-hidden="true">${state.favorites.has(item.id) ? "★" : ""}</span>
-    `;
+    button.tabIndex = item.id === state.activeId || (!filtered.some((entry) => entry.id === state.activeId) && filteredIndex === 0)
+      ? 0
+      : -1;
+
+    const number = document.createElement("span");
+    number.className = "list-number";
+    number.textContent = padNumber(originalIndex + 1);
+
+    const name = document.createElement("span");
+    name.className = "list-name";
+    const chineseName = document.createElement("strong");
+    chineseName.textContent = item.name;
+    const latinName = document.createElement("small");
+    latinName.textContent = `${item.abbr} · ${item.latin}`;
+    name.append(chineseName, latinName);
+
+    const favorite = document.createElement("span");
+    favorite.className = "list-favorite";
+    favorite.setAttribute("aria-hidden", "true");
+    favorite.textContent = isFavorite ? "★" : "";
+
+    const favoriteStatus = document.createElement("span");
+    favoriteStatus.className = "visually-hidden";
+    favoriteStatus.textContent = isFavorite ? "，已收藏" : "，未收藏";
+
+    button.append(number, name, favorite, favoriteStatus);
     button.addEventListener("click", () => setConstellation(item.id, true));
     dom.list.append(button);
   });
+  if (focusedId) {
+    const restored = dom.list.querySelector(`button[data-id="${focusedId}"]`);
+    restored?.focus({ preventScroll: true });
+  }
+
 }
 
 function renderChart(focusMap = false) {
@@ -361,12 +414,93 @@ function renderDossier() {
     const li = document.createElement("li");
     const link = document.createElement("a");
     link.href = source.url;
-    link.target = "_blank";
-    link.rel = "noreferrer";
     link.textContent = source.label;
     li.append(link);
     dom.sourceList.append(li);
   });
+
+  dom.relatedTopicLinks.replaceChildren();
+  const storyTopics = Array.isArray(window.STORY_TOPICS) ? window.STORY_TOPICS : null;
+  if (storyLoadFailed || !storyTopics) {
+    const pending = document.createElement("span");
+    pending.textContent = storyLoadFailed ? "专题资料加载失败" : "专题资料加载中…";
+    dom.relatedTopicLinks.append(pending);
+    return;
+  }
+  const relatedTopics = storyTopics
+    .filter((topic) => (topic.relatedConstellations || []).includes(item.abbr))
+    .slice(0, 6);
+  relatedTopics.forEach((topic) => {
+    const link = document.createElement("a");
+    const url = new URL(window.location.href);
+    url.searchParams.set("topic", topic.id);
+    url.hash = "story-library";
+    link.href = url.toString();
+    link.textContent = topic.title;
+    link.addEventListener("click", (event) => {
+      if (!storyLibrary) return;
+      event.preventDefault();
+      storyLibrary.selectTopic(topic.id, true, { focusReader: true });
+    });
+    dom.relatedTopicLinks.append(link);
+  });
+  if (!relatedTopics.length) {
+    const empty = document.createElement("span");
+    empty.textContent = "当前暂无独立专题";
+    dom.relatedTopicLinks.append(empty);
+  }
+}
+
+function setupPwa() {
+  const updateNetworkStatus = () => {
+    const online = navigator.onLine;
+    const cacheReady = Boolean(navigator.serviceWorker?.controller);
+    dom.networkStatus.textContent = online
+      ? "在线"
+      : cacheReady ? "离线 · 缓存内容可用" : "离线 · 尚未建立离线缓存";
+    dom.networkStatus.dataset.state = online ? "online" : "offline";
+  };
+  updateNetworkStatus();
+  window.addEventListener("online", updateNetworkStatus);
+  window.addEventListener("offline", updateNetworkStatus);
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    dom.installApp.hidden = false;
+  });
+  dom.installApp.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === "accepted") showToast("离线版安装已开始");
+    deferredInstallPrompt = null;
+    dom.installApp.hidden = true;
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    dom.installApp.hidden = true;
+    showToast("天象志已安装，可从设备桌面打开");
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", updateNetworkStatus);
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").then((registration) => {
+        updateNetworkStatus();
+        registration.addEventListener("updatefound", () => {
+          const worker = registration.installing;
+          worker?.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              showToast("新版本已缓存，下次打开时生效");
+            }
+          });
+        });
+      }).catch((error) => {
+        console.error("Service worker registration failed", error);
+      });
+    });
+  }
 }
 
 function renderStory() {
@@ -438,7 +572,10 @@ function setConstellation(id, updateAddress = false, focusMap = true) {
   renderStory();
   renderStorySelector();
   renderHeroReadout();
-  if (updateAddress) updateUrl(id);
+  if (updateAddress) {
+    updateUrl(id);
+    document.title = `${activeConstellation().name}星图 · 天象志`;
+  }
 }
 
 let toastTimer;
@@ -451,7 +588,9 @@ function showToast(message) {
 
 async function copyShareLink() {
   updateUrl(state.activeId);
-  const url = window.location.href;
+  const shareUrl = new URL(window.location.href);
+  shareUrl.hash = "atlas";
+  const url = shareUrl.toString();
   try {
     await navigator.clipboard.writeText(url);
     showToast("星图链接已复制");
@@ -541,6 +680,37 @@ function bindControls() {
     state.visibility = event.target.value;
     renderList();
   });
+  dom.favoritesOnly.addEventListener("click", () => {
+    state.favoritesOnly = !state.favoritesOnly;
+    renderList();
+  });
+  dom.retryStoryLoad.addEventListener("click", () => {
+    dom.retryStoryLoad.hidden = true;
+    const count = document.querySelector("#topicResultCount");
+    if (count) count.textContent = "正在重新加载专题…";
+    loadStoryLibrary();
+  });
+  dom.retryObservingLoad.addEventListener("click", () => {
+    dom.retryObservingLoad.hidden = true;
+    const status = document.querySelector("#observerFormStatus");
+    if (status) status.textContent = "正在重新加载观测助手…";
+    loadObservingAssistant();
+  });
+  dom.list.addEventListener("keydown", (event) => {
+    const current = event.target.closest("button[data-id]");
+    if (!current) return;
+    const buttons = [...dom.list.querySelectorAll("button[data-id]")];
+    const index = buttons.indexOf(current);
+    let target = null;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") target = buttons[(index + 1) % buttons.length];
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") target = buttons[(index - 1 + buttons.length) % buttons.length];
+    else if (event.key === "Home") target = buttons[0];
+    else if (event.key === "End") target = buttons[buttons.length - 1];
+    if (!target) return;
+    event.preventDefault();
+    buttons.forEach((button) => { button.tabIndex = button === target ? 0 : -1; });
+    target.focus();
+  });
 
   dom.linesToggle.addEventListener("change", () => {
     state.showLines = dom.linesToggle.checked;
@@ -611,20 +781,32 @@ function bindControls() {
   dom.heroPrev.addEventListener("click", () => changeHero(-1));
   dom.heroNext.addEventListener("click", () => changeHero(1));
 
-  dom.menuToggle.addEventListener("click", () => {
-    const open = !dom.header.classList.contains("is-open");
+  const setNavigationOpen = (open, restoreFocus = false) => {
     dom.header.classList.toggle("is-open", open);
     dom.menuToggle.setAttribute("aria-expanded", String(open));
     dom.menuToggle.setAttribute("aria-label", open ? "关闭导航" : "打开导航");
     dom.menuToggle.querySelector("span").textContent = open ? "×" : "☰";
+    if (!open && restoreFocus) dom.menuToggle.focus({ preventScroll: true });
+  };
+
+  dom.menuToggle.addEventListener("click", () => {
+    setNavigationOpen(!dom.header.classList.contains("is-open"));
   });
 
   dom.siteNav.addEventListener("click", (event) => {
     if (!event.target.closest("a")) return;
-    dom.header.classList.remove("is-open");
-    dom.menuToggle.setAttribute("aria-expanded", "false");
-    dom.menuToggle.setAttribute("aria-label", "打开导航");
-    dom.menuToggle.querySelector("span").textContent = "☰";
+    setNavigationOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !dom.header.classList.contains("is-open")) return;
+    event.preventDefault();
+    setNavigationOpen(false, true);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!dom.header.classList.contains("is-open") || dom.header.contains(event.target)) return;
+    setNavigationOpen(false);
   });
 
   window.addEventListener("scroll", () => {
@@ -634,19 +816,32 @@ function bindControls() {
 
 function setupRevealAnimations() {
   const elements = document.querySelectorAll(".reveal");
-  if (!("IntersectionObserver" in window)) {
+  const revealAll = () => elements.forEach((element) => element.classList.add("is-visible"));
+
+  try {
+    if (!("IntersectionObserver" in window)) {
+      revealAll();
+      revealAnimationsReady = true;
+      window.clearTimeout(revealFallbackTimer);
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -35px" });
+    elements.forEach((element) => observer.observe(element));
+    revealAnimationsReady = true;
+    window.clearTimeout(revealFallbackTimer);
+  } catch (error) {
+    console.error("Reveal animation initialization failed", error);
     elements.forEach((element) => element.classList.add("is-visible"));
-    return;
+    revealAnimationsReady = true;
+    window.clearTimeout(revealFallbackTimer);
   }
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.12, rootMargin: "0px 0px -35px" });
-  elements.forEach((element) => observer.observe(element));
 }
 
 function setupSkyCanvas() {
@@ -851,14 +1046,39 @@ function initializeCelestialAtlas() {
 
 function selectConstellationFromFeature(id) {
   setConstellation(id, true, true);
-  document.querySelector("#atlas")?.scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+  const atlas = document.querySelector("#atlas");
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const behavior = reducedMotion ? "auto" : "smooth";
+  atlas?.scrollIntoView({
+    behavior,
     block: "start",
   });
+
+  const item = CONSTELLATIONS.find((entry) => entry.id === id);
+  let focusTimer;
+  const focusMap = () => {
+    window.removeEventListener("scrollend", focusMap);
+    window.clearTimeout(focusTimer);
+    dom.celestialMap?.focus({ preventScroll: true });
+    dom.skyAnnouncer.textContent = "";
+    window.requestAnimationFrame(() => {
+      dom.skyAnnouncer.textContent = item
+        ? `已打开${item.name}，焦点已移至互动星图。可使用方向键移动视野。`
+        : "焦点已移至互动星图。可使用方向键移动视野。";
+    });
+  };
+
+  if (behavior === "smooth" && "onscrollend" in window) {
+    window.addEventListener("scrollend", focusMap);
+    focusTimer = window.setTimeout(focusMap, 700);
+  } else {
+    window.requestAnimationFrame(focusMap);
+  }
 }
 
 function initializeObservingAssistant() {
-  if (!window.TonightObserver || !window.OBSERVING_DATA || !window.Astronomy) return;
+  if (observingAssistant) return true;
+  if (!window.TonightObserver || !window.OBSERVING_DATA || !window.Astronomy) return false;
   try {
     observingAssistant = new window.TonightObserver({
       constellations: CONSTELLATIONS,
@@ -866,15 +1086,18 @@ function initializeObservingAssistant() {
       onSelectConstellation: selectConstellationFromFeature,
       onToast: showToast,
     });
+    return true;
   } catch (error) {
     console.error(error);
     const status = document.querySelector("#observerFormStatus");
     if (status) status.textContent = "观测助手初始化失败，请刷新页面后重试。";
+    return false;
   }
 }
 
 function initializeStoryLibrary() {
-  if (!window.StoryLibrary || !Array.isArray(window.STORY_TOPICS)) return;
+  if (storyLibrary) return true;
+  if (!window.StoryLibrary || !Array.isArray(window.STORY_TOPICS)) return false;
   try {
     storyLibrary = new window.StoryLibrary({
       topics: window.STORY_TOPICS,
@@ -882,9 +1105,122 @@ function initializeStoryLibrary() {
       onSelectConstellation: selectConstellationFromFeature,
       onToast: showToast,
     });
+    return true;
   } catch (error) {
     console.error(error);
+    return false;
   }
+}
+
+function loadFeatureScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-feature-src="${src}"]`);
+    if (existing?.dataset.loaded === "true") {
+      resolve();
+      return;
+    }
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.dataset.featureSrc = src;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
+    document.head.append(script);
+  });
+}
+
+function removeFailedFeatureScripts(sources) {
+  sources.forEach((src) => {
+    const script = document.querySelector(`script[data-feature-src="${src}"]`);
+    if (script?.dataset.loaded !== "true") script?.remove();
+  });
+}
+
+function loadStoryLibrary() {
+  if (storyLoadPromise) return storyLoadPromise;
+  const section = document.querySelector("#story-library");
+  storyLoadFailed = false;
+  dom.retryStoryLoad.hidden = true;
+  section?.setAttribute("aria-busy", "true");
+  storyLoadPromise = loadFeatureScript(STORY_FEATURE_SCRIPTS[0])
+    .then(() => loadFeatureScript(STORY_FEATURE_SCRIPTS[1]))
+    .then(() => loadFeatureScript(STORY_FEATURE_SCRIPTS[2]))
+    .then(() => {
+      if (!initializeStoryLibrary()) throw new Error("Story library initialization failed");
+      storyLoadFailed = false;
+      renderDossier();
+    })
+    .catch((error) => {
+      console.error(error);
+      removeFailedFeatureScripts(STORY_FEATURE_SCRIPTS);
+      storyLoadPromise = null;
+      storyLoadFailed = true;
+      const count = document.querySelector("#topicResultCount");
+      if (count) count.textContent = "专题加载失败";
+      dom.retryStoryLoad.hidden = false;
+      renderDossier();
+    })
+    .finally(() => section?.removeAttribute("aria-busy"));
+  return storyLoadPromise;
+}
+
+function loadObservingAssistant() {
+  if (observingLoadPromise) return observingLoadPromise;
+  const section = document.querySelector("#observe");
+  dom.retryObservingLoad.hidden = true;
+  section?.setAttribute("aria-busy", "true");
+  observingLoadPromise = loadFeatureScript(OBSERVING_FEATURE_SCRIPTS[0])
+    .then(() => loadFeatureScript(OBSERVING_FEATURE_SCRIPTS[1]))
+    .then(() => {
+      if (!initializeObservingAssistant()) throw new Error("Observing assistant initialization failed");
+    })
+    .catch((error) => {
+      console.error(error);
+      removeFailedFeatureScripts(OBSERVING_FEATURE_SCRIPTS);
+      observingLoadPromise = null;
+      const status = document.querySelector("#observerFormStatus");
+      if (status) status.textContent = "观测助手加载失败，请检查网络后重试。";
+      dom.retryObservingLoad.hidden = false;
+    })
+    .finally(() => section?.removeAttribute("aria-busy"));
+  return observingLoadPromise;
+}
+
+function setupDeferredFeatures() {
+  const url = new URL(window.location.href);
+  const tasks = [
+    {
+      elements: [dom.relatedTopicLinks, document.querySelector("#story-library")],
+      load: loadStoryLibrary,
+      immediate: url.hash === "#story-library" || url.searchParams.has("topic"),
+    },
+    {
+      elements: [document.querySelector("#observe")],
+      load: loadObservingAssistant,
+      immediate: url.hash === "#observe" || ["loc", "lat", "dt"].some((key) => url.searchParams.has(key)),
+    },
+  ];
+  tasks.forEach((task) => {
+    const elements = task.elements.filter(Boolean);
+    if (!elements.length) return;
+    if (task.immediate || !("IntersectionObserver" in window)) {
+      task.load();
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      task.load();
+    }, { rootMargin: "480px 0px" });
+    elements.forEach((element) => observer.observe(element));
+  });
 }
 
 function initialize() {
@@ -896,8 +1232,6 @@ function initialize() {
   readInitialConstellation();
   bindControls();
   initializeCelestialAtlas();
-  initializeStoryLibrary();
-  initializeObservingAssistant();
   renderList();
   renderChart(true);
   renderDetails();
@@ -908,6 +1242,8 @@ function initialize() {
   setObserveSeason("winter");
   setupRevealAnimations();
   setupSkyCanvas();
+  setupDeferredFeatures();
+  setupPwa();
 }
 
 initialize();

@@ -215,6 +215,26 @@
         this.selectObject({ kind: "star", data: star, ...point }, true);
       });
       this.dom.objectClose?.addEventListener("click", () => this.closeObjectPanel(true));
+      this.dom.objectPopover?.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          this.closeObjectPanel(true);
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const focusable = [this.dom.objectClose, this.dom.objectConstellation]
+          .filter((element) => element && !element.hidden && !element.disabled);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      });
       this.dom.objectConstellation?.addEventListener("click", () => {
         const abbr = this.dom.objectPopover?.dataset.constellation;
         const item = this.contentByAbbr.get(String(abbr || "").toUpperCase());
@@ -261,7 +281,7 @@
 
     resize() {
       const bounds = this.stage.getBoundingClientRect();
-      const width = Math.max(320, Math.round(bounds.width));
+      const width = Math.max(1, Math.round(bounds.width));
       const height = Math.max(380, Math.round(bounds.height));
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 

@@ -33,7 +33,7 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   background: var(--paper);
   color: var(--ink);
   line-height: 1.65;
@@ -91,8 +91,16 @@ h3 {
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 3px solid var(--teal-dark);
   outline-offset: 4px;
+}
+
+.site-header :focus-visible,
+.hero :focus-visible,
+.sky-stage :focus-visible,
+.tonight-overview :focus-visible,
+.site-footer :focus-visible {
+  outline-color: var(--gold);
 }
 
 .visually-hidden {
@@ -601,6 +609,27 @@ h3 {
   font-family: Georgia, serif;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+.catalog-favorite-filter {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper-bright);
+  color: var(--copper-dark);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.catalog-favorite-filter.is-active {
+  border-color: var(--copper-dark);
+  background: var(--copper-dark);
+  color: var(--paper-bright);
 }
 
 .constellation-list {
@@ -1342,13 +1371,54 @@ h3 {
 }
 
 .sources-block a::after {
-  content: "↗";
+  content: "→";
   flex: 0 0 auto;
 }
 
 .source-note {
   margin-top: 18px;
   font-size: 10px;
+}
+
+.related-topic-nav {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.34fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.related-topic-nav > div:first-child p {
+  color: var(--copper-dark);
+  font-size: 11px;
+}
+
+.related-topic-nav h4 {
+  margin-top: 4px;
+  font-family: "Songti SC", SimSun, serif;
+  font-size: 20px;
+}
+
+#relatedTopicLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#relatedTopicLinks a,
+#relatedTopicLinks > span {
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #a9b9b3;
+  border-radius: 4px;
+  color: var(--teal-dark);
+  font-size: 12px;
+}
+
+#relatedTopicLinks a:hover {
+  border-color: var(--teal-dark);
+  background: rgba(46, 116, 113, 0.08);
 }
 
 .story-section {
@@ -1640,9 +1710,38 @@ h3 {
 }
 
 .topic-empty {
+  display: grid;
+  gap: 12px;
   padding: 28px 0;
   color: #65716b;
   font-size: 12px;
+}
+
+.topic-empty button {
+  min-height: 44px;
+  justify-self: start;
+  padding: 7px 11px;
+  border: 1px solid #9fb1aa;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+
+.feature-load-retry {
+  min-height: 44px;
+  margin: 18px 0;
+  padding: 8px 13px;
+  border: 1px solid var(--teal-dark);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal-dark);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.feature-load-retry[hidden] {
+  display: none;
 }
 
 .topic-reader {
@@ -1862,7 +1961,7 @@ h3 {
   border: 1px solid #293338;
   border-radius: var(--radius);
   background: #0c0e13;
-  cursor: pointer;
+  cursor: default;
 }
 
 .topic-related {
@@ -2006,7 +2105,7 @@ h3 {
 }
 
 #topicSources a::after {
-  content: " ↗";
+  content: " →";
 }
 
 #topicSources span {
@@ -2124,8 +2223,9 @@ h3 {
 }
 
 .observer-timezone-control,
-.observer-bortle-control {
-  grid-column: span 3 !important;
+.observer-bortle-control,
+.observer-equipment-control {
+  grid-column: span 2 !important;
 }
 
 .observer-location-button,
@@ -2183,7 +2283,8 @@ h3 {
   gap: 10px;
 }
 
-.weather-consent {
+.weather-consent,
+.location-memory-consent {
   display: grid;
   max-width: 310px;
   grid-template-columns: 16px minmax(0, 1fr);
@@ -2195,14 +2296,16 @@ h3 {
   cursor: pointer;
 }
 
-.weather-consent input {
+.weather-consent input,
+.location-memory-consent input {
   width: 16px;
   height: 16px;
   margin: 0;
   accent-color: var(--teal-dark);
 }
 
-.weather-consent input:focus-visible {
+.weather-consent input:focus-visible,
+.location-memory-consent input:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 3px;
 }
@@ -2324,8 +2427,39 @@ h3 {
 }
 
 .horizon-figure {
+  position: relative;
   border-top: 1px solid #2e333a;
   background: #090b10;
+}
+
+.horizon-time-controls {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 4px;
+  background: rgba(9, 11, 16, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.horizon-time-controls button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--paper-bright);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.horizon-time-controls button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 #horizonCanvas {
@@ -2349,7 +2483,7 @@ h3 {
 
 .condition-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-top: 46px;
 }
@@ -2413,6 +2547,24 @@ h3 {
   background: transparent;
   color: var(--teal-dark);
   cursor: pointer;
+}
+
+.best-time-card button {
+  align-self: end;
+  min-height: 38px;
+  margin-top: 14px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal-dark);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.best-time-card button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .moon-condition-row {
@@ -2667,6 +2819,23 @@ h3 {
   text-align: right;
 }
 
+.planet-timing {
+  grid-column: 1 / -1;
+  padding: 0 0 9px 25px;
+  color: #6d665e;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.event-list article[data-visibility="good"] {
+  box-shadow: inset 2px 0 var(--teal);
+}
+
+.event-list article[data-visibility="daylight"],
+.event-list article[data-visibility="below"] {
+  opacity: 0.72;
+}
+
 .observation-checklist {
   display: grid;
   margin-top: 24px;
@@ -2747,6 +2916,13 @@ h3 {
   color: var(--teal-dark);
   font-size: 10px;
   cursor: pointer;
+}
+
+.plan-privacy-note {
+  margin-top: 12px;
+  color: #625c55;
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .seasonal-reference {
@@ -2972,6 +3148,57 @@ h3 {
   margin-top: 7px;
 }
 
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 16px;
+  margin-top: 20px;
+}
+
+.footer-links a {
+  min-height: 34px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+}
+
+.footer-app-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+#installApp {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--white);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+#installApp[hidden] {
+  display: none;
+}
+
+#networkStatus {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+}
+
+#networkStatus[data-state="offline"] {
+  color: #e3bd78;
+}
+
 .toast {
   position: fixed;
   z-index: 100;
@@ -3006,6 +3233,51 @@ h3 {
   background: var(--copper-dark);
   color: var(--white);
   text-align: center;
+}
+
+/* Compact metadata stays readable at mobile zoom and on outdoor screens. */
+.story-library-section small,
+.story-library-section dt,
+.story-library-section header > p,
+.story-library-section label > span,
+.story-library-section output,
+.topic-kicker,
+.topic-section-marker,
+.observer-form header p,
+.observer-form-footer p,
+.weather-consent,
+.location-memory-consent,
+.observer-form-status,
+.observer-control-grid label,
+.visible-sky-section header > div > p,
+.tonight-events header > p,
+.observation-plan header > div > p,
+.condition-strip article > p,
+.condition-card-head p,
+.condition-strip small,
+.visible-constellation-row > button small,
+.visible-constellation-row > p,
+.calculation-note,
+.result-empty,
+.event-list time,
+.event-list article > div p,
+.event-list article > div span,
+.planet-list,
+.planet-timing,
+.observation-checklist small,
+.plan-privacy-note {
+  font-size: 11px;
+}
+
+.topic-toolbar input,
+.topic-toolbar select,
+.observer-control-grid input,
+.observer-control-grid select,
+.observer-location-button,
+.observer-now-button,
+.plan-actions button,
+.best-time-card button {
+  font-size: 12px;
 }
 
 .js .reveal {
@@ -3463,6 +3735,12 @@ h3 {
     max-height: 560px;
   }
 
+  .catalog-favorite-filter {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
   .constellation-item::before {
     left: -6px;
   }
@@ -3596,6 +3874,16 @@ h3 {
     border-bottom: 0;
   }
 
+  .related-topic-nav {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  #relatedTopicLinks a,
+  #relatedTopicLinks > span {
+    min-height: 44px;
+  }
+
   .story-layout {
     grid-template-columns: 1fr;
     gap: 36px;
@@ -3713,6 +4001,15 @@ h3 {
 
   .footer-meta {
     text-align: left;
+  }
+
+  .footer-links,
+  .footer-app-actions {
+    justify-content: flex-start;
+  }
+
+  #installApp {
+    min-height: 44px;
   }
 
   .topic-toolbar {
@@ -3877,7 +4174,8 @@ h3 {
   .observer-city-control,
   .observer-datetime-control,
   .observer-timezone-control,
-  .observer-bortle-control {
+  .observer-bortle-control,
+  .observer-equipment-control {
     grid-column: 1 / -1 !important;
   }
 
@@ -3895,7 +4193,8 @@ h3 {
   }
 
   .observer-form-footer p,
-  .observer-form-footer .weather-consent {
+  .observer-form-footer .weather-consent,
+  .observer-form-footer .location-memory-consent {
     max-width: none;
   }
 
@@ -3995,6 +4294,12 @@ h3 {
 
   .visibility-filter {
     flex: 1;
+  }
+
+  .catalog-favorite-filter {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
 
   .key-star-row {
@@ -4104,6 +4409,7 @@ h3 {
   .observer-datetime-control,
   .observer-timezone-control,
   .observer-bortle-control,
+  .observer-equipment-control,
   .observer-location-button,
   .observer-now-button {
     grid-column: 1 !important;

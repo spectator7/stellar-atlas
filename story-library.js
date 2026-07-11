@@ -1,6 +1,28 @@
 "use strict";
 
 (() => {
+  const ERA_ORDER = [
+    "史前",
+    "古代两河",
+    "古埃及",
+    "先秦",
+    "古典地中海",
+    "秦汉",
+    "中古",
+    "宋元",
+    "明清",
+    "近现代",
+    "当代",
+    "跨时代",
+  ];
+  const eraOrder = new Map(ERA_ORDER.map((era, index) => [era, index]));
+
+  function compareEras(left, right) {
+    const leftIndex = eraOrder.get(left) ?? Number.POSITIVE_INFINITY;
+    const rightIndex = eraOrder.get(right) ?? Number.POSITIVE_INFINITY;
+    return leftIndex - rightIndex || left.localeCompare(right, "zh-CN");
+  }
+
   function searchableText(topic) {
     return [
       topic.title,
@@ -12,6 +34,14 @@
       ...(topic.keyFigures || []).flatMap((figure) => [figure.name, figure.role, figure.contribution]),
       ...(topic.eraTags || []),
       ...(topic.quotes || []).flatMap((quote) => [quote.text, quote.attribution, quote.work]),
+      ...(topic.timeline || []).flatMap((entry) => [entry.date, entry.title, entry.description, entry.certainty]),
+      ...(topic.comparisons || []).flatMap((comparison) => [
+        comparison.label,
+        ...(comparison.traditions || []).flatMap((tradition) => [tradition.culture, tradition.value]),
+      ]),
+      topic.network?.title,
+      ...(topic.network?.nodes || []).flatMap((node) => [node.id, node.label, node.type, node.constellation]),
+      ...(topic.network?.edges || []).flatMap((edge) => [edge.from, edge.to, edge.label]),
       ...(topic.sources || []).map((source) => source.label),
     ].join(" ").normalize("NFKC").toLowerCase();
   }
@@ -46,6 +76,7 @@
 
       if (!this.topics.length || !this.dom.topicList) return;
       this.context = this.dom.topicRelationCanvas.getContext("2d");
+      this.dom.topicRelationCanvas.style.cursor = "default";
       this.readerElements = [
         document.querySelector(".topic-reader"),
         document.querySelector(".topic-context"),
@@ -87,7 +118,7 @@
         this.dom.topicCultureFilter.append(option);
       });
       const eraTags = [...new Set(this.topics.flatMap((topic) => topic.eraTags || []))]
-        .sort((left, right) => left.localeCompare(right, "zh-CN"));
+        .sort(compareEras);
       eraTags.forEach((value) => {
         const option = document.createElement("option");
         option.value = value;
@@ -113,12 +144,16 @@
         const link = event.target.closest("a[data-topic-id]");
         if (!link) return;
         event.preventDefault();
-        this.selectTopic(link.dataset.topicId, true);
+        this.selectTopic(link.dataset.topicId, true, { focusReader: true });
       });
       this.dom.topicShare.addEventListener("click", () => this.copyTopicLink());
       this.dom.topicPrev.addEventListener("click", () => this.moveTopic(-1));
       this.dom.topicNext.addEventListener("click", () => this.moveTopic(1));
       this.dom.topicRelationCanvas.addEventListener("click", (event) => this.pickGraphNode(event));
+      this.dom.topicRelationCanvas.addEventListener("pointermove", (event) => this.updateGraphCursor(event));
+      this.dom.topicRelationCanvas.addEventListener("pointerleave", () => {
+        this.dom.topicRelationCanvas.style.cursor = "default";
+      });
       window.addEventListener("popstate", () => {
         const id = this.readInitialTopic();
         if (id && id !== this.state.activeId) this.selectTopic(id, false);
@@ -143,12 +178,17 @@
       }
       if (filtered.length && !filtered.some((topic) => topic.id === this.state.activeId)) {
         this.state.activeId = filtered[0].id;
+        this.updateUrl(filtered[0].id, true);
       }
       this.renderIndex(filtered);
       this.renderTopic();
     }
 
     renderIndex(filtered = this.filteredTopics()) {
+      const focusedLink = this.dom.topicList.contains(document.activeElement)
+        ? document.activeElement.closest?.("a[data-topic-id]")
+        : null;
+      const focusedTopicId = focusedLink?.dataset.topicId;
       this.dom.topicResultCount.textContent = `${filtered.length} 篇`;
       this.dom.topicList.replaceChildren();
       filtered.forEach((topic, index) => {
@@ -172,19 +212,69 @@
         this.dom.topicList.append(button);
       });
       if (!filtered.length) {
-        const empty = document.createElement("p");
+        const empty = document.createElement("div");
         empty.className = "topic-empty";
-        empty.textContent = "没有找到匹配的专题。";
+        const message = document.createElement("p");
+        message.textContent = "没有找到匹配的专题。";
+        const reset = document.createElement("button");
+        reset.type = "button";
+        reset.textContent = "清除筛选";
+        reset.addEventListener("click", () => {
+          this.state.search = "";
+          this.state.culture = "all";
+          this.state.era = "all";
+          this.dom.topicSearch.value = "";
+          this.dom.topicCultureFilter.value = "all";
+          this.dom.topicEraFilter.value = "all";
+          this.render();
+          this.dom.topicSearch.focus();
+        });
+        empty.append(message, reset);
         this.dom.topicList.append(empty);
+      }
+      if (focusedTopicId) {
+        const links = [...this.dom.topicList.querySelectorAll("a[data-topic-id]")];
+        const replacement = links.find((link) => link.dataset.topicId === focusedTopicId)
+          || links.find((link) => link.getAttribute("aria-current") === "page");
+        replacement?.focus({ preventScroll: true });
       }
     }
 
-    selectTopic(id, updateAddress) {
+    selectTopic(id, updateAddress, { focusReader = false } = {}) {
       if (!this.topics.some((topic) => topic.id === id)) return;
+      if (!this.filteredTopics().some((topic) => topic.id === id)) {
+        this.state.search = "";
+        this.state.culture = "all";
+        this.state.era = "all";
+        this.dom.topicSearch.value = "";
+        this.dom.topicCultureFilter.value = "all";
+        this.dom.topicEraFilter.value = "all";
+      }
       this.state.activeId = id;
+      const selectedTopic = this.topics.find((topic) => topic.id === id);
+      if (selectedTopic) document.title = `${selectedTopic.title} · 天象志`;
       if (updateAddress) this.updateUrl(id);
-      this.renderIndex();
-      this.renderTopic();
+      this.render();
+      if (focusReader) this.focusTopicReader();
+    }
+
+    focusTopicReader() {
+      const reader = this.dom.topicTitle.closest(".topic-reader");
+      if (!reader) return;
+      this.dom.topicTitle.setAttribute("tabindex", "-1");
+      window.requestAnimationFrame(() => {
+        const bounds = reader.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const needsScroll = bounds.top < 0 || bounds.top > Math.min(viewportHeight * 0.45, 360);
+        if (needsScroll) {
+          const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+          reader.scrollIntoView({
+            behavior: reducedMotion ? "auto" : "smooth",
+            block: "start",
+          });
+        }
+        this.dom.topicTitle.focus({ preventScroll: true });
+      });
     }
 
     renderTopic() {
@@ -359,8 +449,6 @@
         const item = document.createElement("li");
         const link = document.createElement("a");
         link.href = source.url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
         link.textContent = source.label;
         const meta = document.createElement("span");
         meta.textContent = `${source.type || "参考资料"}${source.note ? ` · ${source.note}` : ""}`;
@@ -382,7 +470,7 @@
     resizeGraph() {
       const canvas = this.dom.topicRelationCanvas;
       const bounds = canvas.parentElement.getBoundingClientRect();
-      const width = Math.max(280, Math.round(bounds.width));
+      const width = Math.max(1, Math.round(bounds.width));
       const height = Math.max(320, Math.min(460, Math.round(width * 0.86)));
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       if (width === this.graphWidth && height === this.graphHeight && pixelRatio === this.pixelRatio) return;
@@ -397,6 +485,8 @@
     }
 
     layoutAndDrawGraph(topic) {
+      this.graphNodes = [];
+      this.dom.topicRelationCanvas.style.cursor = "default";
       if (!topic?.network?.nodes?.length || !window.d3 || !this.context) return;
       const nodes = topic.network.nodes.map((node) => ({ ...node }));
       const links = (topic.network.edges || []).map((edge) => ({
@@ -469,23 +559,32 @@
     }
 
     pickGraphNode(event) {
-      if (!this.graphNodes.length) return;
+      const target = this.graphTargetAtEvent(event);
+      if (target) this.onSelectConstellation(target.item.id);
+    }
+
+    updateGraphCursor(event) {
+      this.dom.topicRelationCanvas.style.cursor = this.graphTargetAtEvent(event) ? "pointer" : "default";
+    }
+
+    graphTargetAtEvent(event) {
+      if (!this.graphNodes.length) return null;
       const bounds = this.dom.topicRelationCanvas.getBoundingClientRect();
       const x = (event.clientX - bounds.left) * this.graphWidth / bounds.width;
       const y = (event.clientY - bounds.top) * this.graphHeight / bounds.height;
       const nearest = this.graphNodes
         .map((node) => ({ node, distance: Math.hypot(node.x - x, node.y - y) }))
         .sort((left, right) => left.distance - right.distance)[0];
-      if (!nearest || nearest.distance > 18 || !nearest.node.constellation) return;
+      if (!nearest || nearest.distance > 18 || !nearest.node.constellation) return null;
       const item = this.constellationByAbbr.get(String(nearest.node.constellation).toUpperCase());
-      if (item) this.onSelectConstellation(item.id);
+      return item ? { item, node: nearest.node } : null;
     }
 
     moveTopic(offset) {
       const sequence = this.filteredTopics();
       const index = sequence.findIndex((topic) => topic.id === this.state.activeId);
       const target = sequence[index + offset];
-      if (target) this.selectTopic(target.id, true);
+      if (target) this.selectTopic(target.id, true, { focusReader: true });
     }
 
     updatePagination() {
@@ -503,12 +602,14 @@
       this.dom.topicNext.querySelector("span:first-child").textContent = next ? `下一篇 · ${next.title}` : "下一篇";
     }
 
-    updateUrl(id) {
+    updateUrl(id, replace = false) {
       try {
         const url = new URL(window.location.href);
         url.searchParams.set("topic", id);
         url.hash = "story-library";
-        history.pushState({}, "", url);
+        history[replace ? "replaceState" : "pushState"]({}, "", url);
+        const topic = this.topics.find((entry) => entry.id === id);
+        if (topic) document.title = `${topic.title} · 天象志`;
       } catch {
         // Local file previews can restrict history updates.
       }

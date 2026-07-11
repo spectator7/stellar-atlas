@@ -123,6 +123,17 @@
     }).format(date);
   }
 
+  function formatNightEvent(date, timezone, nightDate) {
+    if (!date) return "—";
+    const local = dateToLocalInput(date, timezone);
+    const datePart = local.slice(0, 10);
+    const timePart = local.slice(11, 16);
+    if (datePart === nightDate) return `当日 ${timePart}`;
+    if (datePart === shiftIsoDate(nightDate, 1)) return `次日 ${timePart}`;
+    if (datePart === shiftIsoDate(nightDate, -1)) return `前日 ${timePart}`;
+    return formatInZone(date, timezone);
+  }
+
   function moonPhaseInfo(angle) {
     const normalized = ((angle % 360) + 360) % 360;
     const phases = [
@@ -193,12 +204,15 @@
       this.dom = Object.fromEntries([
         "observerForm", "observerLocation", "useDeviceLocation", "observerLatitude", "observerLongitude",
         "observerElevation", "observerDateTime", "useCurrentTime", "useTonightTime", "observerTimezone", "observerBortle",
-        "weatherConsent",
+        "observerEquipment",
+        "weatherConsent", "rememberManualLocation",
         "generateTonight", "observerFormStatus", "tonightLocation", "tonightHeadline", "nightQuality",
         "nightQualityReason", "tonightDate", "tonightCoordinates", "tonightMagnitudeLimit", "horizonCanvas",
-        "horizonCaption", "horizonObjectList", "darknessValue", "darknessDetail", "nightWindow", "moonPhaseVisual",
+        "horizonCaption", "horizonObjectList", "stepTimeBackward", "stepTimeForward",
+        "darknessValue", "darknessDetail", "nightWindow", "moonPhaseVisual",
         "moonValue", "moonDetail", "moonTimes", "refreshWeather", "weatherValue", "weatherDetail",
         "weatherTimestamp", "pollutionValue", "pollutionDetail", "pollutionSource", "planetValue", "planetDetail",
+        "bestTimeLabel", "bestTimeValue", "bestTimeDetail", "useBestTime",
         "visibleAltitudeFilter", "visibleConstellationCount", "visibleConstellationList", "eventList", "planetList",
         "observationChecklist", "planCount", "copyPlan", "sharePlan", "downloadPlan",
       ].map((id) => [id, document.querySelector(`#${id}`)]));
@@ -244,6 +258,19 @@
         option.textContent = timezone.label;
         this.dom.observerTimezone.append(option);
       });
+      if (typeof Intl.supportedValuesOf === "function") {
+        const known = new Set([...this.dom.observerTimezone.options].map((option) => option.value));
+        const group = document.createElement("optgroup");
+        group.label = "全部 IANA 时区";
+        Intl.supportedValuesOf("timeZone").forEach((timezone) => {
+          if (known.has(timezone)) return;
+          const option = document.createElement("option");
+          option.value = timezone;
+          option.textContent = timezone;
+          group.append(option);
+        });
+        this.dom.observerTimezone.append(group);
+      }
       this.ensureTimezoneOption(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
       this.data.bortleScale.forEach((entry) => {
@@ -288,6 +315,9 @@
         this.setTonightTime();
         this.generate();
       });
+      this.dom.stepTimeBackward.addEventListener("click", () => this.stepTime(-1));
+      this.dom.stepTimeForward.addEventListener("click", () => this.stepTime(1));
+      this.dom.useBestTime.addEventListener("click", () => this.useBestObservationTime());
       this.dom.useDeviceLocation.addEventListener("click", () => this.useDeviceLocation());
       this.dom.refreshWeather.addEventListener("click", () => {
         this.dom.weatherConsent.checked = true;
@@ -299,7 +329,9 @@
         } else {
           this.cancelWeatherRequest();
           this.weather = { status: "idle", data: null, error: "" };
+          this.updateBestTimeFromWeather();
           this.renderWeather();
+          this.renderConditions();
           this.renderQuality();
           this.buildChecklist();
         }
@@ -327,23 +359,133 @@
     }
 
     restoreAndInitialize() {
+      const shared = this.readSharedSettings();
       let saved = {};
       try {
         saved = JSON.parse(localStorage.getItem("tianxiang-observer-v1") || "{}");
       } catch {
         saved = {};
       }
-      const locationId = this.locationById.has(saved.locationId) ? saved.locationId : "beijing";
-      this.applyLocation(locationId, false);
-      if (Number.isInteger(saved.bortle) && this.bortleByLevel.has(saved.bortle)) {
-        this.dom.observerBortle.value = String(saved.bortle);
-        this.pollutionSource = saved.bortle === this.locationById.get(locationId)?.bortle
-          ? "城市中心估计"
-          : "上次手动设置";
+      if (shared) {
+        this.applySharedSettings(shared);
+      } else {
+        let locationId = this.locationById.has(saved.locationId) ? saved.locationId : null;
+        if (locationId) {
+          this.applyLocation(locationId, false);
+        } else if (saved.rememberManualLocation && this.applySavedManualLocation(saved.manualLocation)) {
+          this.dom.rememberManualLocation.checked = true;
+        } else {
+          locationId = "beijing";
+          this.applyLocation(locationId, false);
+        }
+        if (Number.isInteger(saved.bortle) && this.bortleByLevel.has(saved.bortle)) {
+          this.dom.observerBortle.value = String(saved.bortle);
+          this.pollutionSource = saved.bortle === this.locationById.get(locationId)?.bortle
+            ? "城市中心估计"
+            : "上次手动设置";
+        }
+        if (["naked-eye", "binoculars", "telescope"].includes(saved.equipment)) {
+          this.dom.observerEquipment.value = saved.equipment;
+        }
+        this.setTonightTime();
       }
-      this.setTonightTime();
       this.resizeHorizon();
       this.generate();
+    }
+
+    applySavedManualLocation(location) {
+      if (!location || typeof location !== "object") return false;
+      const latitude = Number(location.latitude);
+      const longitude = Number(location.longitude);
+      const elevation = Number(location.elevation);
+      if (
+        !Number.isFinite(latitude) || latitude < -90 || latitude > 90
+        || !Number.isFinite(longitude) || longitude < -180 || longitude > 180
+        || !Number.isFinite(elevation) || elevation < -500 || elevation > 9000
+        || !this.ensureTimezoneOption(location.timezone)
+      ) return false;
+      this.dom.observerLocation.value = "manual";
+      this.dom.observerLatitude.value = latitude.toFixed(4);
+      this.dom.observerLongitude.value = longitude.toFixed(4);
+      this.dom.observerElevation.value = String(Math.round(elevation));
+      this.dom.observerTimezone.value = location.timezone;
+      this.locationSource = "saved";
+      this.locationLabel = typeof location.label === "string" && location.label.trim()
+        ? location.label.trim()
+        : "上次手动坐标";
+      this.pollutionSource = "上次手动设置";
+      return true;
+    }
+
+    readSharedSettings() {
+      try {
+        const params = new URL(window.location.href).searchParams;
+        const locationId = params.get("loc");
+        const timezone = params.get("tz") || "";
+        const localDateTime = params.get("dt") || "";
+        const bortle = Number(params.get("bortle"));
+        const equipment = ["naked-eye", "binoculars", "telescope"].includes(params.get("gear"))
+          ? params.get("gear")
+          : null;
+        if (locationId && this.locationById.has(locationId)) {
+          return {
+            locationId,
+            localDateTime,
+            bortle: this.bortleByLevel.has(bortle) ? bortle : null,
+            equipment,
+          };
+        }
+
+        const latitude = Number(params.get("lat"));
+        const longitude = Number(params.get("lon"));
+        const elevation = Number(params.get("elev") || 0);
+        if (
+          !Number.isFinite(latitude) || latitude < -90 || latitude > 90
+          || !Number.isFinite(longitude) || longitude < -180 || longitude > 180
+          || !Number.isFinite(elevation) || elevation < -500 || elevation > 9000
+          || !this.ensureTimezoneOption(timezone)
+        ) return null;
+        return {
+          latitude,
+          longitude,
+          elevation,
+          timezone,
+          localDateTime,
+          bortle: this.bortleByLevel.has(bortle) ? bortle : null,
+          equipment,
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    applySharedSettings(settings) {
+      if (settings.locationId) {
+        this.applyLocation(settings.locationId, false);
+      } else {
+        this.dom.observerLocation.value = "manual";
+        this.dom.observerLatitude.value = settings.latitude.toFixed(2);
+        this.dom.observerLongitude.value = settings.longitude.toFixed(2);
+        this.dom.observerElevation.value = String(Math.round(settings.elevation));
+        this.dom.observerTimezone.value = settings.timezone;
+        this.locationSource = "shared";
+        this.locationLabel = "共享坐标";
+        this.pollutionSource = "共享设置";
+      }
+      const timezone = this.dom.observerTimezone.value;
+      if (settings.localDateTime && zonedDateTimeToDate(settings.localDateTime, timezone)) {
+        this.dom.observerDateTime.value = settings.localDateTime;
+      } else {
+        this.setTonightTime();
+      }
+      if (Number.isInteger(settings.bortle) && this.bortleByLevel.has(settings.bortle)) {
+        this.dom.observerBortle.value = String(settings.bortle);
+        this.pollutionSource = settings.locationId
+          && settings.bortle === this.locationById.get(settings.locationId)?.bortle
+          ? "城市中心估计"
+          : "共享设置";
+      }
+      if (settings.equipment) this.dom.observerEquipment.value = settings.equipment;
     }
 
     ensureTimezoneOption(timezone) {
@@ -374,7 +516,7 @@
       this.locationSource = "preset";
       this.locationLabel = location.name;
       this.pollutionSource = "城市中心估计";
-      this.setTonightTime();
+      if (!this.dom.observerDateTime.value) this.setTonightTime();
       if (regenerate) this.generate();
     }
 
@@ -393,6 +535,23 @@
         return;
       }
       this.dom.observerDateTime.value = `${parts.year}-${parts.month}-${parts.day}T21:00`;
+    }
+
+    stepTime(hours) {
+      const form = this.readForm();
+      if (!form) return;
+      const next = new Date(form.date.getTime() + hours * HOUR_MS);
+      this.dom.observerDateTime.value = dateToLocalInput(next, form.timezone);
+      this.generate();
+    }
+
+    useBestObservationTime() {
+      if (!this.snapshot?.bestTime?.time) return;
+      this.dom.observerDateTime.value = dateToLocalInput(
+        this.snapshot.bestTime.time,
+        this.snapshot.form.timezone,
+      );
+      this.generate();
     }
 
     useDeviceLocation() {
@@ -418,7 +577,7 @@
           this.locationLabel = "设备位置";
           this.pollutionSource = "手动设置";
           this.dom.useDeviceLocation.disabled = false;
-          this.setTonightTime();
+          if (!this.dom.observerDateTime.value) this.setTonightTime();
           this.setFormStatus("已读取设备位置；不会查询天气，除非你勾选天气选项或点击刷新。", "success");
           this.generate();
         },
@@ -442,6 +601,7 @@
       const timezone = this.dom.observerTimezone.value;
       const localDateTime = this.dom.observerDateTime.value;
       const bortle = Number(this.dom.observerBortle.value);
+      const equipment = this.dom.observerEquipment.value;
       const validations = [
         [this.dom.observerLatitude, Number.isFinite(latitude) && latitude >= -90 && latitude <= 90],
         [this.dom.observerLongitude, Number.isFinite(longitude) && longitude >= -180 && longitude <= 180],
@@ -449,7 +609,12 @@
         [this.dom.observerDateTime, Boolean(localDateTime)],
       ];
       validations.forEach(([input, valid]) => input.setAttribute("aria-invalid", String(!valid)));
-      if (validations.some(([, valid]) => !valid) || !timezone || !this.bortleByLevel.has(bortle)) {
+      if (
+        validations.some(([, valid]) => !valid)
+        || !timezone
+        || !this.bortleByLevel.has(bortle)
+        || !["naked-eye", "binoculars", "telescope"].includes(equipment)
+      ) {
         this.setFormStatus("请检查经纬度、海拔、日期时间和时区。", "error");
         return null;
       }
@@ -461,7 +626,7 @@
       }
       const selectedLocation = this.locationById.get(this.dom.observerLocation.value);
       const label = selectedLocation?.name || this.locationLabel || "手动坐标";
-      return { latitude, longitude, elevation, timezone, localDateTime, bortle, date, label };
+      return { latitude, longitude, elevation, timezone, localDateTime, bortle, equipment, date, label };
     }
 
     async generate() {
@@ -513,12 +678,14 @@
           ...definition,
           ...this.bodyPosition(definition.body, form.date, observer, true),
           elongation,
+          ...this.calculateBodyEvents(definition.body, darkness.anchorNoon, observer),
         };
       });
       const constellations = this.calculateConstellations(form, observer);
       const bortle = this.bortleByLevel.get(form.bortle);
       const stars = this.calculateHorizonStars(form, observer, bortle.nakedEyeLimit);
-      const events = this.calculateEvents(form);
+      const events = this.calculateEvents(form, observer);
+      const bestTime = this.calculateBestObservationTime(form, observer, darkness, bortle);
 
       return {
         form,
@@ -530,6 +697,7 @@
         constellations,
         stars,
         events,
+        bestTime,
         bortle,
         generatedAt: new Date(),
       };
@@ -553,6 +721,26 @@
         dec: equator.dec,
         magnitude,
       };
+    }
+
+    calculateBodyEvents(body, startDate, observer) {
+      const safeDate = (callback) => {
+        try {
+          const result = callback();
+          return result?.date || result?.time?.date || null;
+        } catch {
+          return null;
+        }
+      };
+      const rise = safeDate(() => this.A.SearchRiseSet(body, observer, +1, startDate, 1.25));
+      const set = safeDate(() => this.A.SearchRiseSet(body, observer, -1, startDate, 1.25));
+      let transit = null;
+      try {
+        transit = this.A.SearchHourAngle(body, observer, 0, startDate, +1)?.time?.date || null;
+      } catch {
+        transit = null;
+      }
+      return { rise, set, transit };
     }
 
     calculateDarkness(form, observer) {
@@ -593,6 +781,7 @@
 
       return {
         nightDate,
+        anchorNoon: noon,
         astronomicalState,
         minimumSunAltitude,
         maximumSunAltitude,
@@ -664,7 +853,97 @@
       return stars.sort((left, right) => right.mag - left.mag);
     }
 
-    calculateEvents(form) {
+    calculateBestObservationTime(form, observer, darkness, bortle, weatherHours = []) {
+      const fallbackStart = zonedDateTimeToDate(`${darkness.nightDate}T18:00`, form.timezone)
+        || darkness.anchorNoon;
+      const fallbackEnd = zonedDateTimeToDate(
+        `${shiftIsoDate(darkness.nightDate, 1)}T06:00`,
+        form.timezone,
+      ) || new Date(fallbackStart.getTime() + 12 * HOUR_MS);
+      const start = darkness.astronomicalDusk || darkness.sunset || fallbackStart;
+      let end = darkness.astronomicalDawn || darkness.sunrise || fallbackEnd;
+      if (end <= start) end = new Date(start.getTime() + 12 * HOUR_MS);
+
+      let best = null;
+      for (let time = new Date(start); time <= end; time = new Date(time.getTime() + 30 * 60 * 1000)) {
+        const sun = this.bodyPosition(this.A.Body.Sun, time, observer, false);
+        if (sun.altitude > -6) continue;
+        const moon = this.bodyPosition(this.A.Body.Moon, time, observer, false);
+        let moonIllumination = 0;
+        try {
+          moonIllumination = this.A.Illumination(this.A.Body.Moon, time).phase_fraction;
+        } catch {
+          moonIllumination = 0;
+        }
+        const moonImpact = moon.altitude <= 0
+          ? 0
+          : moonIllumination * Math.sin(clamp(moon.altitude, 0, 90) * Math.PI / 180);
+
+        const rotation = this.A.Rotation_EQJ_HOR(time, observer);
+        let targetCount = 0;
+        this.constellations.forEach((item) => {
+          const longitude = ((Number(item.profile?.center?.longitude || 0) % 360) + 360) % 360;
+          const declination = Number(item.profile?.center?.declination || 0);
+          const vector = this.A.VectorFromSphere(new this.A.Spherical(declination, longitude, 1), time);
+          const horizon = this.A.HorizonFromVector(this.A.RotateVector(rotation, vector), "normal");
+          if (horizon.lat >= 35) targetCount += 1;
+        });
+
+        let planetCount = 0;
+        this.planetDefinitions.forEach((definition) => {
+          const position = this.bodyPosition(definition.body, time, observer, true);
+          let elongation = null;
+          try {
+            elongation = this.A.AngleFromSun(definition.body, time);
+          } catch {
+            elongation = null;
+          }
+          if (
+            position.altitude >= 15
+            && Number.isFinite(position.magnitude)
+            && position.magnitude <= 6
+            && (!Number.isFinite(elongation) || elongation >= 10)
+          ) planetCount += 1;
+        });
+
+        const darknessScore = clamp((-sun.altitude - 6) / 12, 0, 1);
+        const targetScore = clamp(targetCount / 10, 0, 1);
+        const planetScore = clamp(planetCount / 3, 0, 1);
+        const pollutionScore = clamp((10 - bortle.level) / 9, 0, 1);
+        let score = darknessScore * 42
+          + (1 - moonImpact) * 28
+          + targetScore * 18
+          + planetScore * 8
+          + pollutionScore * 4;
+        let weather = null;
+        if (weatherHours.length) {
+          weather = weatherHours.reduce((nearest, entry) => (
+            !nearest || Math.abs(entry.time - time) < Math.abs(nearest.time - time) ? entry : nearest
+          ), null);
+          if (weather && Math.abs(weather.time - time) <= 90 * 60 * 1000) {
+            score -= weather.cloudCover * 0.34;
+            score -= weather.precipitationProbability * 0.28;
+            score -= Math.max(0, weather.windSpeed - 15) * 0.4;
+          } else {
+            weather = null;
+          }
+        }
+        if (!best || score > best.score) {
+          best = {
+            time,
+            score,
+            sunAltitude: sun.altitude,
+            moonImpact,
+            targetCount,
+            planetCount,
+            weather,
+          };
+        }
+      }
+      return best;
+    }
+
+    calculateEvents(form, observer) {
       const selectedYear = Number(form.localDateTime.slice(0, 4));
       const selectedMonth = Number(form.localDateTime.slice(5, 7));
       const nextYear = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
@@ -695,39 +974,69 @@
         quarter = this.A.NextMoonQuarter(quarter);
       }
 
-      events.push(...this.monthlyMeteorShowers(form, selectedYear, selectedMonth));
-      events.push(...this.findMoonPlanetConjunctions(monthStart, nextMonthStart));
-      return events.sort((left, right) => left.time - right.time).slice(0, 14);
+      events.push(...this.monthlyMeteorShowers(
+        form,
+        selectedYear,
+        selectedMonth,
+        monthStart,
+        nextMonthStart,
+      ));
+      events.push(...this.findMoonPlanetConjunctions(monthStart, nextMonthStart, form, observer));
+      return events.sort((left, right) => left.time - right.time).slice(0, 20);
     }
 
-    monthlyMeteorShowers(form, selectedYear, selectedMonth) {
+    monthlyMeteorShowers(form, selectedYear, selectedMonth, monthStart, nextMonthStart) {
       const events = [];
       this.data.meteorShowers.forEach((shower) => {
-        if (shower.peakMonth !== selectedMonth) return;
+        const crossesYear = shower.startMonth > shower.endMonth
+          || (shower.startMonth === shower.endMonth && shower.startDay > shower.endDay);
+        let startYear = selectedYear;
+        let endYear = selectedYear;
+        if (crossesYear) {
+          if (selectedMonth <= shower.endMonth) startYear -= 1;
+          else endYear += 1;
+        }
+        const activityStart = zonedDateTimeToDate(
+          `${startYear}-${pad(shower.startMonth)}-${pad(shower.startDay)}T00:00`,
+          form.timezone,
+        );
+        const activityEnd = zonedDateTimeToDate(
+          `${endYear}-${pad(shower.endMonth)}-${pad(shower.endDay)}T23:59`,
+          form.timezone,
+        );
+        if (!activityStart || !activityEnd || activityEnd < monthStart || activityStart >= nextMonthStart) return;
+
+        const peakYear = crossesYear && shower.peakMonth <= shower.endMonth ? endYear : startYear;
         const peak = zonedDateTimeToDate(
-          `${selectedYear}-${pad(shower.peakMonth)}-${pad(shower.peakDay)}T12:00`,
+          `${peakYear}-${pad(shower.peakMonth)}-${pad(shower.peakDay)}T12:00`,
           form.timezone,
         );
         if (!peak) return;
+        const isPeakMonth = peak >= monthStart && peak < nextMonthStart;
+        const representativeTime = isPeakMonth
+          ? peak
+          : new Date(Math.max(activityStart.getTime(), monthStart.getTime()));
         events.push({
-          id: `meteor-${shower.id}-${selectedYear}`,
+          id: `meteor-${shower.id}-${selectedYear}-${pad(selectedMonth)}`,
           kind: "流星雨",
-          title: shower.name,
-          time: peak,
+          title: `${shower.name}${isPeakMonth ? "" : "（活跃期）"}`,
+          time: representativeTime,
           dateOnly: true,
-          detail: `${shower.window} · ${shower.zhr} · ${shower.hemisphere}。峰值仅为常年日期参考，不代表当地精确时刻。`,
+          detail: `${shower.window} · 常年峰值 ${shower.peakMonth}月${shower.peakDay}日 · 辐射点 ${shower.radiant} · ${shower.zhr} · 母体 ${shower.parent} · ${shower.hemisphere}。峰值日期与流量仅供年度参考。`,
           constellation: shower.constellation,
+          peakTime: peak,
+          activityStart,
+          activityEnd,
         });
       });
       return events;
     }
 
-    findMoonPlanetConjunctions(startDate, endDate) {
+    findMoonPlanetConjunctions(startDate, endDate, form, observer) {
       const samples = [];
       const sampleCount = Math.ceil((endDate - startDate) / (6 * HOUR_MS));
-      for (let index = 0; index <= sampleCount; index += 1) {
+      for (let index = -1; index <= sampleCount + 1; index += 1) {
         const time = new Date(startDate.getTime() + index * 6 * HOUR_MS);
-        if (time > endDate) break;
         samples.push({ time, moon: this.A.GeoVector(this.A.Body.Moon, time, true) });
       }
       const events = [];
@@ -736,32 +1045,89 @@
           sample.moon,
           this.A.GeoVector(planet.body, sample.time, true),
         ));
-        let best = null;
+        const planetEvents = [];
         for (let index = 1; index < angles.length - 1; index += 1) {
-          if (angles[index] > 8 || angles[index] > angles[index - 1] || angles[index] > angles[index + 1]) continue;
-          let refined = { angle: angles[index], time: samples[index].time };
-          for (let hour = -6; hour <= 6; hour += 1) {
-            const time = new Date(samples[index].time.getTime() + hour * HOUR_MS);
-            if (time < startDate || time >= endDate) continue;
+          if (angles[index] > 10 || angles[index] > angles[index - 1] || angles[index] > angles[index + 1]) continue;
+          let refined = null;
+          for (let minute = -360; minute <= 360; minute += 10) {
+            const time = new Date(samples[index].time.getTime() + minute * 60 * 1000);
             const angle = this.A.AngleBetween(
               this.A.GeoVector(this.A.Body.Moon, time, true),
               this.A.GeoVector(planet.body, time, true),
             );
-            if (angle < refined.angle) refined = { angle, time };
+            if (!refined || angle < refined.angle) refined = { angle, time };
           }
-          best = refined;
-          break;
+          if (!refined || refined.time < startDate || refined.time >= endDate || refined.angle > 8) continue;
+          if (planetEvents.some((entry) => Math.abs(entry.time - refined.time) < 5 * DAY_MS)) continue;
+          planetEvents.push(refined);
         }
-        if (!best || best.time < startDate || best.time >= endDate) return;
-        events.push({
-          id: `moon-${planet.id}-${best.time.toISOString().slice(0, 10)}`,
-          kind: "行星合月",
-          title: `月亮接近${planet.name}`,
-          time: best.time,
-          detail: `地心视角最小角距约 ${best.angle.toFixed(1)}°；实际可见性还取决于当地高度与日光。`,
+        planetEvents.forEach((best) => {
+          const visibility = this.assessConjunctionVisibility(
+            best.time,
+            planet.body,
+            observer,
+            startDate,
+            endDate,
+          );
+          const localDetail = visibility.alternative
+            ? `精确接近时${visibility.label}；可在 ${formatInZone(visibility.alternative.time, form.timezone)} 附近观察，届时角距约 ${visibility.alternative.angle.toFixed(1)}°。`
+            : `当地判断：${visibility.label}。`;
+          events.push({
+            id: `moon-${planet.id}-${best.time.toISOString().slice(0, 16)}`,
+            kind: "行星合月",
+            title: `月亮接近${planet.name}`,
+            time: best.time,
+            approximateTime: true,
+            visibilityLevel: visibility.level,
+            detail: `地心视角最小角距约 ${best.angle.toFixed(1)}°。${localDetail}`,
+          });
         });
       });
       return events;
+    }
+
+    assessConjunctionVisibility(time, planetBody, observer, startDate, endDate) {
+      const inspect = (candidate) => {
+        const sun = this.bodyPosition(this.A.Body.Sun, candidate, observer, false);
+        const moon = this.bodyPosition(this.A.Body.Moon, candidate, observer, false);
+        const planet = this.bodyPosition(planetBody, candidate, observer, false);
+        const observable = sun.altitude <= -6 && moon.altitude >= 10 && planet.altitude >= 10;
+        let label = "可直接观测";
+        let level = "good";
+        if (!observable && sun.altitude > 0) {
+          label = "发生在日光时段";
+          level = "daylight";
+        } else if (!observable && sun.altitude > -6) {
+          label = "发生在明亮暮光中";
+          level = "twilight";
+        } else if (!observable && (moon.altitude < 0 || planet.altitude < 0)) {
+          label = "至少一个目标在地平线下";
+          level = "below";
+        } else if (!observable) {
+          label = "目标高度较低";
+          level = "low";
+        }
+        return { observable, label, level, moon, planet, sun };
+      };
+
+      const exact = inspect(time);
+      if (exact.observable) return exact;
+      let alternative = null;
+      for (let step = 1; step <= 16 && !alternative; step += 1) {
+        for (const direction of [-1, 1]) {
+          const candidate = new Date(time.getTime() + direction * step * 30 * 60 * 1000);
+          if (candidate < startDate || candidate >= endDate) continue;
+          const state = inspect(candidate);
+          if (!state.observable) continue;
+          const angle = this.A.AngleBetween(
+            this.A.GeoVector(this.A.Body.Moon, candidate, true),
+            this.A.GeoVector(planetBody, candidate, true),
+          );
+          alternative = { time: candidate, angle };
+          break;
+        }
+      }
+      return { ...exact, alternative };
     }
 
     renderAll() {
@@ -902,6 +1268,25 @@
       this.dom.planetDetail.textContent = aboveHorizonPlanets.length
         ? aboveHorizonPlanets.map((planet) => `${planet.name} ${planet.altitude.toFixed(0)}°`).join(" · ")
         : "所选时刻主要行星均较低或在地平线下。";
+
+      const best = this.snapshot.bestTime;
+      if (best?.time) {
+        this.dom.bestTimeLabel.textContent = best.weather ? "综合推荐时刻" : "天文推荐时刻";
+        this.dom.bestTimeValue.textContent = formatInZone(best.time, form.timezone);
+        const moonText = best.moonImpact < 0.15
+          ? "月光影响较小"
+          : best.moonImpact < 0.45 ? "月光有一定影响" : "月光影响明显";
+        const weatherText = best.weather
+          ? ` · 云量 ${Math.round(best.weather.cloudCover)}% · 降水 ${Math.round(best.weather.precipitationProbability)}%`
+          : "";
+        this.dom.bestTimeDetail.textContent = `太阳 ${best.sunAltitude.toFixed(1)}° · ${moonText} · 高空星座 ${best.targetCount} 个${best.planetCount ? ` · 亮行星 ${best.planetCount} 颗` : ""}${weatherText}`;
+        this.dom.useBestTime.disabled = Math.abs(best.time - form.date) < 15 * 60 * 1000;
+      } else {
+        this.dom.bestTimeLabel.textContent = "天文推荐时刻";
+        this.dom.bestTimeValue.textContent = "本夜无黑暗窗口";
+        this.dom.bestTimeDetail.textContent = "太阳整夜未低于民用暮光线，可优先观察月亮或明亮行星。";
+        this.dom.useBestTime.disabled = true;
+      }
       this.renderWeather();
     }
 
@@ -966,7 +1351,7 @@
         if (entry.circumpolar) {
           timing.textContent = "当前地点近似拱极，单日内不落";
         } else {
-          timing.textContent = `升起 ${formatInZone(entry.rise, this.snapshot.form.timezone, { date: false })} · 落下 ${formatInZone(entry.set, this.snapshot.form.timezone, { date: false })}`;
+          timing.textContent = `升起 ${formatNightEvent(entry.rise, this.snapshot.form.timezone, this.snapshot.darkness.nightDate)} · 落下 ${formatNightEvent(entry.set, this.snapshot.form.timezone, this.snapshot.darkness.nightDate)}`;
         }
         row.append(nameButton, altitude, position, timing);
         this.dom.visibleConstellationList.append(row);
@@ -983,11 +1368,13 @@
       this.dom.eventList.replaceChildren();
       this.snapshot.events.forEach((event) => {
         const article = document.createElement("article");
+        if (event.visibilityLevel) article.dataset.visibility = event.visibilityLevel;
         const date = document.createElement("time");
         date.dateTime = event.time.toISOString();
-        date.textContent = event.dateOnly
+        const eventTime = event.dateOnly
           ? formatDateOnlyInZone(event.time, this.snapshot.form.timezone)
           : formatInZone(event.time, this.snapshot.form.timezone);
+        date.textContent = event.approximateTime ? `约 ${eventTime}` : eventTime;
         const body = document.createElement("div");
         const kind = document.createElement("p");
         kind.textContent = event.kind;
@@ -1035,7 +1422,10 @@
           : `地平线下 ${Math.abs(planet.altitude).toFixed(1)}°${elongation}`;
         const magnitude = document.createElement("span");
         magnitude.textContent = Number.isFinite(planet.magnitude) ? `${planet.magnitude.toFixed(1)} 等` : "—";
-        row.append(name, altitude, magnitude);
+        const timing = document.createElement("small");
+        timing.className = "planet-timing";
+        timing.textContent = `升 ${formatNightEvent(planet.rise, this.snapshot.form.timezone, this.snapshot.darkness.nightDate)} · 中天 ${formatNightEvent(planet.transit, this.snapshot.form.timezone, this.snapshot.darkness.nightDate)} · 落 ${formatNightEvent(planet.set, this.snapshot.form.timezone, this.snapshot.darkness.nightDate)}`;
+        row.append(name, altitude, magnitude, timing);
         this.dom.planetList.append(row);
       });
     }
@@ -1045,6 +1435,13 @@
       const previous = new Map(this.checklist.map((item) => [item.id, item.checked]));
       const threshold = Number(this.dom.visibleAltitudeFilter.value);
       const isDarkEnoughForStars = this.snapshot.sun.altitude <= -6;
+      const equipment = this.snapshot.form.equipment;
+      const equipmentLabels = {
+        "naked-eye": "裸眼",
+        binoculars: "双筒望远镜",
+        telescope: "小型望远镜",
+      };
+      const moonPenalty = this.calculateMoonImpact() * 2;
       const highConstellations = isDarkEnoughForStars
         ? this.snapshot.constellations
           .filter((entry) => entry.altitude >= Math.max(20, threshold))
@@ -1054,19 +1451,41 @@
         ? this.snapshot.planets
           .filter((planet) => (
             planet.altitude >= 10
-            && planet.magnitude <= 6
+            && Number.isFinite(planet.magnitude)
+            && planet.magnitude <= (
+              equipment === "naked-eye"
+                ? this.snapshot.bortle.nakedEyeLimit - moonPenalty - Math.max(0, (25 - planet.altitude) / 15)
+                : equipment === "binoculars" ? 9 : 12
+            )
             && (!Number.isFinite(planet.elongation) || planet.elongation >= 10)
           ))
           .sort((left, right) => left.magnitude - right.magnitude)
           .slice(0, 4)
         : [];
-      const nearbyShowers = this.snapshot.events
-        .filter((event) => event.kind === "流星雨" && Math.abs(event.time - this.snapshot.form.date) < 21 * DAY_MS)
+      const activeShowers = this.snapshot.events
+        .filter((event) => (
+          event.kind === "流星雨"
+          && event.activityStart <= this.snapshot.form.date
+          && event.activityEnd >= this.snapshot.form.date
+        ))
+        .sort((left, right) => (
+          Math.abs(left.peakTime - this.snapshot.form.date) - Math.abs(right.peakTime - this.snapshot.form.date)
+        ))
         .slice(0, 2);
       const items = [
         { id: "prepare-dark-adaptation", group: "准备", text: "离开直射光并预留约 20 分钟暗适应时间。" },
         { id: "prepare-red-light", group: "准备", text: "携带红光照明、保暖衣物和离线可用的星图。" },
+        { id: "equipment-mode", group: "器材", text: `本清单按${equipmentLabels[equipment]}模式筛选目标。` },
       ];
+
+      if (this.snapshot.bestTime?.time) {
+        const weatherIncluded = Boolean(this.snapshot.bestTime.weather);
+        items.push({
+          id: "best-observing-time",
+          group: "时间",
+          text: `${weatherIncluded ? "综合条件" : "天文条件"}推荐 ${formatInZone(this.snapshot.bestTime.time, this.snapshot.form.timezone)} 前后开始观测；${weatherIncluded ? "已结合逐小时云量、降水与风速。" : "天气需另行复核。"}`,
+        });
+      }
 
       if (!isDarkEnoughForStars) {
         items.push({
@@ -1105,14 +1524,22 @@
         });
       });
       visiblePlanets.forEach((planet) => {
+        const instrumentHint = equipment === "naked-eye"
+          ? "裸眼寻找"
+          : equipment === "binoculars" ? "用双筒配合星图定位" : "用小型望远镜配合星图定位";
         items.push({
           id: `planet-${planet.id}`,
           group: "行星",
-          text: `${directionName(planet.azimuth)}方观测${planet.name}，高度约 ${planet.altitude.toFixed(0)}°，视星等 ${planet.magnitude.toFixed(1)}。`,
+          text: `${instrumentHint}${planet.name}：${directionName(planet.azimuth)}方，高度约 ${planet.altitude.toFixed(0)}°，视星等 ${planet.magnitude.toFixed(1)}。`,
         });
       });
-      nearbyShowers.forEach((event) => {
-        items.push({ id: event.id, group: "天象", text: `${event.title}接近常年峰值；避开月光并扩大视野。` });
+      activeShowers.forEach((event) => {
+        const peakParts = localParts(event.peakTime, this.snapshot.form.timezone);
+        const nearPeak = Math.abs(event.peakTime - this.snapshot.form.date) < 3 * DAY_MS;
+        const timing = nearPeak
+          ? "接近常年峰值"
+          : `处于常年活跃期，峰值约 ${Number(peakParts.month)}月${Number(peakParts.day)}日`;
+        items.push({ id: event.id, group: "天象", text: `${event.title}${timing}；避开月光并扩大视野。` });
       });
 
       const deepSkyWeatherOkay = this.weather.status !== "success"
@@ -1123,16 +1550,17 @@
         && this.calculateMoonImpact() < 0.45
         && deepSkyWeatherOkay
       ) {
+        const deepSkyMagnitudeLimit = equipment === "naked-eye" ? 4.5 : equipment === "binoculars" ? 7 : 10;
         const deepSky = highConstellations
           .flatMap((entry) => (entry.item.profile?.deepSky || []).map((target) => ({ entry, target })))
-          .filter(({ target }) => Number(target.mag) <= 6.5)
+          .filter(({ target }) => Number(target.mag) <= deepSkyMagnitudeLimit)
           .sort((left, right) => Number(left.target.mag) - Number(right.target.mag))
           .slice(0, 3);
         deepSky.forEach(({ entry, target }) => {
           items.push({
             id: `dso-${entry.item.id}-${target.name}`,
             group: "深空",
-            text: `用双筒或小型望远镜尝试${entry.item.name}中的 ${target.name}${target.commonName ? `（${target.commonName}）` : ""}。`,
+            text: `用${equipmentLabels[equipment]}尝试${entry.item.name}中的 ${target.name}${target.commonName ? `（${target.commonName}）` : ""}。`,
           });
         });
       }
@@ -1175,18 +1603,48 @@
       const { form } = this.snapshot;
       const quality = this.qualityAssessment();
       const selected = this.checklist.filter((item) => item.checked);
+      const equipmentLabels = {
+        "naked-eye": "裸眼",
+        binoculars: "双筒望远镜",
+        telescope: "小型望远镜",
+      };
       const lines = [
         `天象志 · ${form.label}观测清单`,
         `${formatInZone(form.date, form.timezone)} · ${form.timezone}`,
-        `${formatCoordinate(form.latitude, "N", "S")} / ${formatCoordinate(form.longitude, "E", "W")}`,
+        `大致位置：${formatCoordinate(Number(form.latitude.toFixed(1)), "N", "S")} / ${formatCoordinate(Number(form.longitude.toFixed(1)), "E", "W")}`,
+        `器材模式：${equipmentLabels[form.equipment]}`,
         `综合判断：${quality.label}（${quality.reasons.slice(0, 3).join("；")}）`,
         "",
         ...selected.map((item, index) => `${index + 1}. [${item.group}] ${item.text}`),
         "",
         `说明：星座升落采用中心代表位置近似；${this.weather.status === "success" ? "天气来自 Open-Meteo；" : "天气未计入；"}光污染等级可手动修正。`,
-        "https://spectator7.github.io/stellar-atlas/#observe",
+        this.buildObserverShareUrl(),
       ];
       return lines.join("\n");
+    }
+
+    buildObserverShareUrl() {
+      const { form } = this.snapshot;
+      const url = new URL(window.location.href);
+      ["loc", "lat", "lon", "elev", "tz", "dt", "bortle", "gear"].forEach((key) => {
+        url.searchParams.delete(key);
+      });
+      const locationId = this.locationById.has(this.dom.observerLocation.value)
+        ? this.dom.observerLocation.value
+        : null;
+      if (locationId) {
+        url.searchParams.set("loc", locationId);
+      } else {
+        url.searchParams.set("lat", form.latitude.toFixed(1));
+        url.searchParams.set("lon", form.longitude.toFixed(1));
+        url.searchParams.set("elev", String(Math.round(form.elevation / 50) * 50));
+        url.searchParams.set("tz", form.timezone);
+      }
+      url.searchParams.set("dt", form.localDateTime);
+      url.searchParams.set("bortle", String(form.bortle));
+      url.searchParams.set("gear", form.equipment);
+      url.hash = "observe";
+      return url.toString();
     }
 
     async copyPlan() {
@@ -1211,7 +1669,11 @@
       const text = this.buildPlanText();
       if (navigator.share) {
         try {
-          await navigator.share({ title: "天象志 · 今晚观测清单", text });
+          await navigator.share({
+            title: "天象志 · 今晚观测清单",
+            text,
+            url: this.buildObserverShareUrl(),
+          });
           return;
         } catch (error) {
           if (error.name === "AbortError") return;
@@ -1256,7 +1718,11 @@
       if (!this.dom.weatherConsent.checked) {
         this.cancelWeatherRequest();
         this.weather = { status: "idle", data: null, error: "" };
+        this.updateBestTimeFromWeather();
         this.renderWeather();
+        this.renderConditions();
+        this.renderQuality();
+        this.buildChecklist();
         return;
       }
 
@@ -1276,7 +1742,8 @@
       if (!force && cached && Date.now() - cached.savedAt < 15 * 60 * 1000) {
         if (!isCurrent()) return;
         this.weather = { status: "success", data: cached.data, error: "" };
-        this.renderWeather();
+        this.updateBestTimeFromWeather();
+        this.renderConditions();
         this.renderQuality();
         this.buildChecklist();
         return;
@@ -1325,6 +1792,25 @@
             visibility: Number(values.visibility) / 1000,
             windSpeed: Number(values.windSpeed),
             weatherCode: Number(values.weatherCode),
+            nightHours: (payload.hourly?.time || []).map((localTime, hourIndex) => {
+              const time = zonedDateTimeToDate(localTime, form.timezone);
+              const cloudCover = payload.hourly?.cloud_cover?.[hourIndex];
+              const precipitationProbability = payload.hourly?.precipitation_probability?.[hourIndex];
+              const windSpeed = payload.hourly?.wind_speed_10m?.[hourIndex];
+              if (
+                !time
+                || cloudCover === null || cloudCover === undefined || !Number.isFinite(Number(cloudCover))
+                || precipitationProbability === null || precipitationProbability === undefined
+                || !Number.isFinite(Number(precipitationProbability))
+                || windSpeed === null || windSpeed === undefined || !Number.isFinite(Number(windSpeed))
+              ) return null;
+              return {
+                time,
+                cloudCover: Number(cloudCover),
+                precipitationProbability: Number(precipitationProbability),
+                windSpeed: Number(windSpeed),
+              };
+            }).filter(Boolean),
           };
           this.weather = { status: "success", data, error: "" };
           this.weatherCache.set(cacheKey, { data, savedAt: Date.now() });
@@ -1340,16 +1826,28 @@
         window.clearTimeout(timeout);
         if (this.weatherController === controller) this.weatherController = null;
         if (isCurrent()) {
-          this.renderWeather();
+          this.updateBestTimeFromWeather();
+          this.renderConditions();
           this.renderQuality();
           this.buildChecklist();
         }
       }
     }
 
+    updateBestTimeFromWeather() {
+      if (!this.snapshot) return;
+      this.snapshot.bestTime = this.calculateBestObservationTime(
+        this.snapshot.form,
+        this.snapshot.observer,
+        this.snapshot.darkness,
+        this.snapshot.bortle,
+        this.weather.status === "success" ? this.weather.data.nightHours || [] : [],
+      );
+    }
+
     resizeHorizon() {
       const bounds = this.canvas.parentElement.getBoundingClientRect();
-      const width = Math.max(320, Math.round(bounds.width));
+      const width = Math.max(1, Math.round(bounds.width));
       const height = Math.max(360, Math.round(Math.min(width * 0.71, 560)));
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
       if (width === this.canvasWidth && height === this.canvasHeight && pixelRatio === this.pixelRatio) return;
@@ -1497,14 +1995,17 @@
       context.fillText("天顶", centerX, centerY);
 
       this.dom.horizonObjectList.replaceChildren();
-      this.horizonHits
-        .filter((hit) => hit.type === "constellation")
-        .slice(0, 30)
-        .forEach((hit) => {
-          const item = document.createElement("li");
+      this.horizonHits.slice(0, 40).forEach((hit) => {
+        const item = document.createElement("li");
+        if (hit.type === "constellation") {
           item.textContent = `${hit.entry.item.name}，${hit.entry.direction}方，高度 ${hit.entry.altitude.toFixed(1)}°`;
-          this.dom.horizonObjectList.append(item);
-        });
+        } else if (hit.type === "planet") {
+          item.textContent = `${hit.entry.name}，${directionName(hit.entry.azimuth)}方，高度 ${hit.entry.altitude.toFixed(1)}°`;
+        } else {
+          item.textContent = `月亮，${directionName(this.snapshot.moon.azimuth)}方，高度 ${this.snapshot.moon.altitude.toFixed(1)}°`;
+        }
+        this.dom.horizonObjectList.append(item);
+      });
     }
 
     boxesOverlap(left, right) {
@@ -1540,9 +2041,19 @@
         const locationId = this.locationById.has(this.dom.observerLocation.value)
           ? this.dom.observerLocation.value
           : null;
+        const rememberManualLocation = !locationId && this.dom.rememberManualLocation.checked;
         localStorage.setItem("tianxiang-observer-v1", JSON.stringify({
           locationId,
           bortle: Number(this.dom.observerBortle.value),
+          equipment: this.dom.observerEquipment.value,
+          rememberManualLocation,
+          manualLocation: rememberManualLocation ? {
+            latitude: Number(this.dom.observerLatitude.value),
+            longitude: Number(this.dom.observerLongitude.value),
+            elevation: Number(this.dom.observerElevation.value),
+            timezone: this.dom.observerTimezone.value,
+            label: this.locationLabel,
+          } : null,
         }));
       } catch {
         // The observing assistant works without local persistence.

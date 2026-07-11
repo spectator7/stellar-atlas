@@ -1,17 +1,78 @@
 {
   "name": "天象志 · 可探索的星空图鉴",
   "short_name": "天象志",
-  "description": "收录星座连线、东西方故事与北半球观测线索的中文星空图鉴。",
+  "description": "探索 88 个现代星座、当地今晚星空与跨文明天文故事的中文互动图鉴。",
+  "id": "./",
   "start_url": "./",
+  "scope": "./",
+  "lang": "zh-CN",
+  "dir": "ltr",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#090a0d",
   "theme_color": "#090a0d",
+  "categories": ["education", "reference", "lifestyle"],
   "icons": [
     {
       "src": "assets/mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "探索全天星图",
+      "short_name": "星图",
+      "description": "浏览 88 个现代星座与深空目标",
+      "url": "./#atlas",
+      "icons": [
+        {
+          "src": "assets/mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "今晚星空",
+      "short_name": "今晚",
+      "description": "按地点和时间生成观测建议",
+      "url": "./#observe",
+      "icons": [
+        {
+          "src": "assets/mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "星空故事专题",
+      "short_name": "专题",
+      "description": "阅读中国与世界的星空文化专题",
+      "url": "./#story-library",
+      "icons": [
+        {
+          "src": "assets/mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
 }

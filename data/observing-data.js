@@ -87,17 +87,17 @@ window.OBSERVING_DATA = {
     { level: 9, title: "中心城区", nakedEyeLimit: 3.8, note: "天空大范围发白，建议寻找高空亮星、月球和行星。" }
   ],
   meteorShowers: [
-    { id: "quadrantids", name: "象限仪座流星雨", peakMonth: 1, peakDay: 3, window: "12月28日至1月12日", zhr: "约 80–120", radiant: "牧夫座北部", constellation: "BOO", parent: "小行星 2003 EH1", hemisphere: "北半球更佳" },
-    { id: "lyrids", name: "天琴座流星雨", peakMonth: 4, peakDay: 22, window: "4月14日至30日", zhr: "约 15–20", radiant: "天琴座", constellation: "LYR", parent: "C/1861 G1 撒切尔彗星", hemisphere: "南北半球均可" },
-    { id: "eta-aquariids", name: "宝瓶座η流星雨", peakMonth: 5, peakDay: 5, window: "4月19日至5月28日", zhr: "约 40–60", radiant: "宝瓶座", constellation: "AQR", parent: "1P/哈雷彗星", hemisphere: "低纬与南半球更佳" },
-    { id: "delta-aquariids", name: "宝瓶座δ南流星雨", peakMonth: 7, peakDay: 30, window: "7月12日至8月23日", zhr: "约 20–25", radiant: "宝瓶座", constellation: "AQR", parent: "可能与 96P/梅克贺兹彗星族有关", hemisphere: "南半球更佳" },
-    { id: "perseids", name: "英仙座流星雨", peakMonth: 8, peakDay: 12, window: "7月17日至8月24日", zhr: "约 90–110", radiant: "英仙座", constellation: "PER", parent: "109P/斯威夫特-塔特尔彗星", hemisphere: "北半球更佳" },
-    { id: "draconids", name: "天龙座流星雨", peakMonth: 10, peakDay: 8, window: "10月6日至10日", zhr: "通常较低，偶有爆发", radiant: "天龙座", constellation: "DRA", parent: "21P/贾科比尼-秦诺彗星", hemisphere: "北半球" },
-    { id: "orionids", name: "猎户座流星雨", peakMonth: 10, peakDay: 21, window: "10月2日至11月7日", zhr: "约 15–25", radiant: "猎户座", constellation: "ORI", parent: "1P/哈雷彗星", hemisphere: "南北半球均可" },
-    { id: "taurids", name: "金牛座流星雨", peakMonth: 11, peakDay: 5, window: "9月下旬至11月下旬", zhr: "约 5，火流星比例较高", radiant: "金牛座", constellation: "TAU", parent: "2P/恩克彗星及金牛座复合体", hemisphere: "南北半球均可" },
-    { id: "leonids", name: "狮子座流星雨", peakMonth: 11, peakDay: 17, window: "11月6日至30日", zhr: "通常约 10–15", radiant: "狮子座", constellation: "LEO", parent: "55P/坦普尔-塔特尔彗星", hemisphere: "南北半球均可" },
-    { id: "geminids", name: "双子座流星雨", peakMonth: 12, peakDay: 14, window: "12月4日至20日", zhr: "约 120–150", radiant: "双子座", constellation: "GEM", parent: "小行星 3200 法厄同", hemisphere: "南北半球均可，北半球辐射点更高" },
-    { id: "ursids", name: "小熊座流星雨", peakMonth: 12, peakDay: 22, window: "12月17日至26日", zhr: "约 5–10", radiant: "小熊座", constellation: "UMI", parent: "8P/塔特尔彗星", hemisphere: "北半球" }
+    { id: "quadrantids", name: "象限仪座流星雨", startMonth: 12, startDay: 28, endMonth: 1, endDay: 12, peakMonth: 1, peakDay: 3, window: "12月28日至1月12日", zhr: "约 80–120", radiant: "牧夫座北部", constellation: "BOO", parent: "小行星 2003 EH1", hemisphere: "北半球更佳" },
+    { id: "lyrids", name: "天琴座流星雨", startMonth: 4, startDay: 14, endMonth: 4, endDay: 30, peakMonth: 4, peakDay: 22, window: "4月14日至30日", zhr: "约 15–20", radiant: "天琴座", constellation: "LYR", parent: "C/1861 G1 撒切尔彗星", hemisphere: "南北半球均可" },
+    { id: "eta-aquariids", name: "宝瓶座η流星雨", startMonth: 4, startDay: 19, endMonth: 5, endDay: 28, peakMonth: 5, peakDay: 5, window: "4月19日至5月28日", zhr: "约 40–60", radiant: "宝瓶座", constellation: "AQR", parent: "1P/哈雷彗星", hemisphere: "低纬与南半球更佳" },
+    { id: "delta-aquariids", name: "宝瓶座δ南流星雨", startMonth: 7, startDay: 12, endMonth: 8, endDay: 23, peakMonth: 7, peakDay: 30, window: "7月12日至8月23日", zhr: "约 20–25", radiant: "宝瓶座", constellation: "AQR", parent: "可能与 96P/梅克贺兹彗星族有关", hemisphere: "南半球更佳" },
+    { id: "perseids", name: "英仙座流星雨", startMonth: 7, startDay: 17, endMonth: 8, endDay: 24, peakMonth: 8, peakDay: 12, window: "7月17日至8月24日", zhr: "约 90–110", radiant: "英仙座", constellation: "PER", parent: "109P/斯威夫特-塔特尔彗星", hemisphere: "北半球更佳" },
+    { id: "draconids", name: "天龙座流星雨", startMonth: 10, startDay: 6, endMonth: 10, endDay: 10, peakMonth: 10, peakDay: 8, window: "10月6日至10日", zhr: "通常较低，偶有爆发", radiant: "天龙座", constellation: "DRA", parent: "21P/贾科比尼-秦诺彗星", hemisphere: "北半球" },
+    { id: "orionids", name: "猎户座流星雨", startMonth: 10, startDay: 2, endMonth: 11, endDay: 7, peakMonth: 10, peakDay: 21, window: "10月2日至11月7日", zhr: "约 15–25", radiant: "猎户座", constellation: "ORI", parent: "1P/哈雷彗星", hemisphere: "南北半球均可" },
+    { id: "taurids", name: "金牛座流星雨", startMonth: 9, startDay: 20, endMonth: 11, endDay: 30, peakMonth: 11, peakDay: 5, window: "9月下旬至11月下旬", zhr: "约 5，火流星比例较高", radiant: "金牛座", constellation: "TAU", parent: "2P/恩克彗星及金牛座复合体", hemisphere: "南北半球均可" },
+    { id: "leonids", name: "狮子座流星雨", startMonth: 11, startDay: 6, endMonth: 11, endDay: 30, peakMonth: 11, peakDay: 17, window: "11月6日至30日", zhr: "通常约 10–15", radiant: "狮子座", constellation: "LEO", parent: "55P/坦普尔-塔特尔彗星", hemisphere: "南北半球均可" },
+    { id: "geminids", name: "双子座流星雨", startMonth: 12, startDay: 4, endMonth: 12, endDay: 20, peakMonth: 12, peakDay: 14, window: "12月4日至20日", zhr: "约 120–150", radiant: "双子座", constellation: "GEM", parent: "小行星 3200 法厄同", hemisphere: "南北半球均可，北半球辐射点更高" },
+    { id: "ursids", name: "小熊座流星雨", startMonth: 12, startDay: 17, endMonth: 12, endDay: 26, peakMonth: 12, peakDay: 22, window: "12月17日至26日", zhr: "约 5–10", radiant: "小熊座", constellation: "UMI", parent: "8P/塔特尔彗星", hemisphere: "北半球" }
   ],
   sources: [
     { label: "Astronomy Engine", url: "https://github.com/cosinekitty/astronomy", scope: "天体位置、月相、升落与暮光计算" },

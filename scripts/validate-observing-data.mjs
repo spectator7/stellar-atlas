@@ -202,6 +202,17 @@ if (isObject(observingData)) {
       });
       assert(validMonthDay(shower.peakMonth, shower.peakDay),
         `${label}: peakMonth/peakDay is not a valid calendar date`);
+      assert(validMonthDay(shower.startMonth, shower.startDay),
+        `${label}: startMonth/startDay is not a valid calendar date`);
+      assert(validMonthDay(shower.endMonth, shower.endDay),
+        `${label}: endMonth/endDay is not a valid calendar date`);
+      const startKey = shower.startMonth * 100 + shower.startDay;
+      const endKey = shower.endMonth * 100 + shower.endDay;
+      const peakKey = shower.peakMonth * 100 + shower.peakDay;
+      const peakWithinActivity = startKey <= endKey
+        ? peakKey >= startKey && peakKey <= endKey
+        : peakKey >= startKey || peakKey <= endKey;
+      assert(peakWithinActivity, `${label}: peak date must fall inside the structured activity range`);
       if (Number.isInteger(shower.peakMonth) && isNonEmptyString(shower.window)) {
         assert(shower.window.includes(`${shower.peakMonth}月`),
           `${label}.window: should include the peak month ${shower.peakMonth}月`);

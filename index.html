@@ -8,27 +8,54 @@
       content="天象志是一部可探索的中文星空图鉴，收录 88 星座、连续星图、今晚观测助手与跨文明故事专题。"
     />
     <meta name="theme-color" content="#090a0d" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="index, follow" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://spectator7.github.io/stellar-atlas/" />
     <meta property="og:title" content="天象志 · 可探索的星空图鉴" />
     <meta
       property="og:description"
       content="探索 88 星座，生成当地今晚星空，并沿时间线阅读中国与世界的星空故事。"
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://spectator7.github.io/stellar-atlas/" />
+    <meta property="og:site_name" content="天象志" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:image" content="https://spectator7.github.io/stellar-atlas/assets/social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="天象志星图式分享预览" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="天象志 · 可探索的星空图鉴" />
+    <meta name="twitter:description" content="探索 88 星座，生成当地今晚星空，并阅读跨文明星空专题。" />
+    <meta name="twitter:image" content="https://spectator7.github.io/stellar-atlas/assets/social-preview.png" />
     <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="manifest" href="site.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
     <script>document.documentElement.classList.add("js");</script>
     <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
     <script src="assets/vendor/astronomy-engine-2.1.19.min.js" defer></script>
-    <script src="data/observing-data.js" defer></script>
-    <script src="data/story-topics.js" defer></script>
-    <script src="data/story-topics-extra.js" defer></script>
     <script src="data/sky-atlas.js" defer></script>
     <script src="data/constellations.js" defer></script>
     <script src="sky-map.js" defer></script>
-    <script src="observing.js" defer></script>
-    <script src="story-library.js" defer></script>
     <script src="app.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "天象志",
+        "alternateName": "Stellar Atlas",
+        "url": "https://spectator7.github.io/stellar-atlas/",
+        "inLanguage": "zh-CN",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "description": "收录 88 个现代星座、连续全天星图、今晚观测助手与跨文明星空故事的中文在线图鉴。",
+        "isAccessibleForFree": true,
+        "license": "https://github.com/spectator7/stellar-atlas/blob/main/LICENSE",
+        "codeRepository": "https://github.com/spectator7/stellar-atlas"
+      }
+    </script>
     <title>天象志 · 可探索的星空图鉴</title>
   </head>
   <body>
@@ -56,7 +83,7 @@
         <a href="#atlas">星图</a>
         <a href="#story-library">专题</a>
         <a href="#observe">观测</a>
-        <a class="nav-github" href="#publish">GitHub</a>
+        <a class="nav-github" href="https://github.com/spectator7/stellar-atlas">GitHub</a>
       </nav>
     </header>
 
@@ -132,7 +159,8 @@
                   <option value="far-south">极南天星座</option>
                 </select>
               </label>
-              <span id="resultCount" class="result-count">88 / 88</span>
+              <button id="favoritesOnly" class="catalog-favorite-filter" type="button" title="只看收藏" aria-label="只看收藏" aria-pressed="false">☆</button>
+              <span id="resultCount" class="result-count" role="status" aria-live="polite">88 / 88</span>
             </div>
 
             <div class="constellation-list" id="constellationList"></div>
@@ -308,6 +336,13 @@
               <p class="source-note">星座边界采用现代 88 星座体系；中国传统星官按文化天区说明，不作一一对应。</p>
             </section>
           </div>
+          <nav class="related-topic-nav" aria-labelledby="relatedTopicTitle">
+            <div>
+              <p>延伸阅读</p>
+              <h4 id="relatedTopicTitle">与当前星座相关的专题</h4>
+            </div>
+            <div id="relatedTopicLinks"></div>
+          </nav>
         </section>
       </section>
 
@@ -332,7 +367,7 @@
             </div>
             <p class="story-origin" id="storyOrigin">三垣二十八宿 · 西方白虎</p>
             <h3 id="storyTitle">参商永隔</h3>
-            <div id="storyBody" class="story-body" role="tabpanel"></div>
+            <div id="storyBody" class="story-body" role="tabpanel" tabindex="0"></div>
             <p class="story-note" id="storyNote"></p>
           </article>
 
@@ -384,6 +419,7 @@
           </label>
           <output id="topicResultCount" aria-live="polite">12 篇</output>
         </div>
+        <button id="retryStoryLoad" class="feature-load-retry" type="button" hidden>重新加载专题资料</button>
 
         <div class="topic-workspace reveal">
           <aside class="topic-index" aria-label="专题目录">
@@ -395,7 +431,7 @@
             <header class="topic-header">
               <div>
                 <p class="topic-kicker" id="topicKicker">中国星空体系</p>
-                <h3 id="topicTitle">三垣二十八宿总览</h3>
+                <h3 id="topicTitle" tabindex="-1">三垣二十八宿总览</h3>
               </div>
               <button id="topicShare" class="text-button" type="button">复制专题链接</button>
             </header>
@@ -414,7 +450,7 @@
               <p>关系图</p>
               <h3 id="topicRelationTitle">人物、星官与星座</h3>
             </div>
-            <canvas id="topicRelationCanvas" width="420" height="360" role="img" aria-label="当前专题的关系网络"></canvas>
+            <canvas id="topicRelationCanvas" width="420" height="360" role="img" aria-label="当前专题的关系网络" aria-describedby="topicRelationList"></canvas>
             <ul id="topicRelationList" class="visually-hidden"></ul>
             <div class="topic-related">
               <p>相关现代星座</p>
@@ -497,6 +533,14 @@
                 <span>光污染等级</span>
                 <select id="observerBortle"></select>
               </label>
+              <label class="observer-equipment-control">
+                <span>观测器材</span>
+                <select id="observerEquipment">
+                  <option value="naked-eye">裸眼</option>
+                  <option value="binoculars">双筒望远镜</option>
+                  <option value="telescope">小型望远镜</option>
+                </select>
+              </label>
             </div>
 
             <div class="observer-form-footer">
@@ -506,10 +550,15 @@
                   <input id="weatherConsent" type="checkbox" />
                   <span>同时查询天气：向 Open-Meteo 发送约 0.01° 坐标与海拔</span>
                 </label>
+                <label class="location-memory-consent">
+                  <input id="rememberManualLocation" type="checkbox" />
+                  <span>仅在本机记住手动或设备坐标；默认不保存精确位置</span>
+                </label>
               </div>
               <button id="generateTonight" class="button button-primary" type="submit">生成今晚星空</button>
             </div>
             <p id="observerFormStatus" class="observer-form-status" role="status" aria-live="polite"></p>
+            <button id="retryObservingLoad" class="feature-load-retry" type="button" hidden>重新加载观测助手</button>
           </form>
 
           <section class="tonight-overview" aria-labelledby="tonightHeadline">
@@ -528,7 +577,11 @@
             </dl>
 
             <figure class="horizon-figure">
-              <canvas id="horizonCanvas" width="760" height="540" role="img" aria-label="当地时间的地平星图"></canvas>
+              <canvas id="horizonCanvas" width="760" height="540" role="img" aria-label="当地时间的地平星图" aria-describedby="horizonObjectList"></canvas>
+              <div class="horizon-time-controls" role="group" aria-label="调整观测时间">
+                <button id="stepTimeBackward" type="button" title="提前一小时" aria-label="提前一小时">←</button>
+                <button id="stepTimeForward" type="button" title="推后一小时" aria-label="推后一小时">→</button>
+              </div>
               <figcaption>
                 <span id="horizonCaption">几何地平线以上的亮星、星座中心与行星</span>
                 <span>方位角 · 高度角</span>
@@ -575,6 +628,12 @@
             <span id="planetDetail"></span>
             <small>按几何高度统计；肉眼可见性还取决于日光、日距和天气</small>
           </article>
+          <article class="best-time-card">
+            <p id="bestTimeLabel">天文推荐时刻</p>
+            <strong id="bestTimeValue">计算中</strong>
+            <span id="bestTimeDetail"></span>
+            <button id="useBestTime" type="button">切换到该时刻</button>
+          </article>
         </div>
 
         <div class="tonight-results reveal">
@@ -591,7 +650,7 @@
                     <option value="30">30°</option>
                   </select>
                 </label>
-                <output id="visibleConstellationCount">0 个</output>
+                <output id="visibleConstellationCount" role="status" aria-live="polite">0 个</output>
               </div>
             </header>
             <div id="visibleConstellationList" class="visible-constellation-list"></div>
@@ -610,7 +669,7 @@
           <section class="observation-plan" aria-labelledby="observationPlanTitle">
             <header>
               <div><p>观测清单</p><h3 id="observationPlanTitle">带到户外的今晚计划</h3></div>
-              <output id="planCount">0 项</output>
+              <output id="planCount" role="status" aria-live="polite">0 项</output>
             </header>
             <div id="observationChecklist" class="observation-checklist"></div>
             <div class="plan-actions">
@@ -618,6 +677,7 @@
               <button id="sharePlan" type="button">分享</button>
               <button id="downloadPlan" type="button">下载文本</button>
             </div>
+            <p class="plan-privacy-note">共享时使用城市预设，或将手动坐标模糊到约 0.1°；天气授权不会写入链接。</p>
           </section>
         </div>
 
@@ -687,6 +747,15 @@
       <div class="footer-meta">
         <p>STAR ATLAS · ALL-SKY J2000</p>
         <p>星位采用 J2000 赤道坐标；当前日期坐标用于参考。</p>
+        <nav class="footer-links" aria-label="项目链接">
+          <a href="https://github.com/spectator7/stellar-atlas">源码</a>
+          <a href="https://github.com/spectator7/stellar-atlas/issues">问题反馈</a>
+          <a href="https://github.com/spectator7/stellar-atlas/blob/main/LICENSE">MIT 许可证</a>
+        </nav>
+        <div class="footer-app-actions">
+          <button id="installApp" type="button" hidden><span aria-hidden="true">↓</span><span>安装离线版</span></button>
+          <span id="networkStatus" role="status" aria-live="polite">在线</span>
+        </div>
       </div>
     </footer>
 

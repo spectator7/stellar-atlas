@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://spectator7.github.io/stellar-atlas/sitemap.xml

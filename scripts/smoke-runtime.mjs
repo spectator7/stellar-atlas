@@ -39,6 +39,7 @@ const beijingForm = {
   timezone: "Asia/Shanghai",
   localDateTime: "2026-07-11T21:00",
   bortle: 9,
+  equipment: "naked-eye",
   date: new Date("2026-07-11T13:00:00Z"),
   label: "北京",
 };
@@ -47,6 +48,8 @@ assert.equal(snapshot.constellations.length, 88);
 assert.equal(snapshot.planets.length, 7);
 assert.ok(snapshot.stars.length > 100);
 assert.ok(snapshot.planets.every((planet) => Number.isFinite(planet.elongation)));
+assert.ok(snapshot.planets.every((planet) => "rise" in planet && "transit" in planet && "set" in planet));
+assert.ok(snapshot.bestTime?.time instanceof Date);
 assert.ok(snapshot.events.every((event) => {
   const month = new Intl.DateTimeFormat("en", {
     timeZone: beijingForm.timezone,
@@ -54,6 +57,9 @@ assert.ok(snapshot.events.every((event) => {
   }).format(event.time);
   return month === "07";
 }));
+const julyPerseids = snapshot.events.find((event) => event.title.startsWith("英仙座流星雨"));
+assert.ok(julyPerseids, "跨月流星雨应在活跃月份出现");
+assert.match(julyPerseids.detail, /辐射点 英仙座/);
 
 const polarObserver = new Astronomy.Observer(69.6492, 18.9553, 15);
 const polarSummer = assistant.calculateDarkness({
@@ -85,12 +91,63 @@ assistant.dom = {
   observerTimezone: fakeInput("America/New_York"),
   observerDateTime: fakeInput("2026-03-08T02:30"),
   observerBortle: fakeInput("9"),
+  observerEquipment: fakeInput("naked-eye"),
   observerLocation: fakeInput("manual"),
 };
 assistant.locationById = new Map();
 assistant.locationLabel = "手动坐标";
 assistant.setFormStatus = () => {};
 assert.equal(assistant.readForm(), null, "DST 跳过的当地时间必须被拒绝");
+
+assistant.dom.observerTimezone.value = "Asia/Kolkata";
+assistant.dom.observerDateTime.value = "2026-01-01T21:00";
+const indiaTime = assistant.readForm();
+assert.equal(indiaTime.date.toISOString(), "2026-01-01T15:30:00.000Z");
+
+const januaryForm = {
+  ...beijingForm,
+  localDateTime: "2026-01-15T21:00",
+  date: new Date("2026-01-15T13:00:00Z"),
+};
+const januaryEvents = assistant.calculateEvents(
+  januaryForm,
+  new Astronomy.Observer(januaryForm.latitude, januaryForm.longitude, januaryForm.elevation),
+);
+const januaryJupiterEvents = januaryEvents.filter((event) => event.title === "月亮接近木星");
+assert.ok(januaryJupiterEvents.length >= 2, "同一自然月的第二次木星合月不能遗漏");
+
+const weatherHours = [];
+for (let hour = 19; hour <= 29; hour += 1) {
+  weatherHours.push({
+    time: new Date(Date.UTC(2026, 6, 11, hour - 8)),
+    cloudCover: hour < 24 ? 100 : 0,
+    precipitationProbability: hour < 24 ? 80 : 0,
+    windSpeed: 8,
+  });
+}
+const weatherBest = assistant.calculateBestObservationTime(
+  beijingForm,
+  snapshot.observer,
+  snapshot.darkness,
+  snapshot.bortle,
+  weatherHours,
+);
+assert.equal(weatherBest.weather.cloudCover, 0, "整夜推荐应避开高云量时段");
+
+assistant.snapshot = snapshot;
+assistant.weather = { status: "success", data: { nightHours: weatherHours } };
+assistant.updateBestTimeFromWeather();
+assert.equal(snapshot.bestTime.weather.cloudCover, 0, "启用天气后应保存综合推荐时刻");
+assistant.weather = { status: "idle", data: null, error: "" };
+assistant.updateBestTimeFromWeather();
+assert.equal(snapshot.bestTime.weather, null, "关闭天气后应恢复纯天文推荐时刻");
+
+globalThis.location = new URL("https://example.com/stellar-atlas/?constellation=orion");
+assistant.dom.observerLocation.value = "manual";
+const sharedUrl = new URL(assistant.buildObserverShareUrl());
+assert.equal(sharedUrl.origin, "https://example.com");
+assert.equal(sharedUrl.searchParams.get("lat"), "39.9");
+assert.equal(sharedUrl.hash, "#observe");
 
 assert.notEqual(
   assistant.weatherKeyFor(beijingForm),
@@ -117,6 +174,8 @@ console.log(JSON.stringify({
     constellations: snapshot.constellations.length,
     horizonStars: snapshot.stars.length,
     monthlyEvents: snapshot.events.length,
+    januaryJupiterEvents: januaryJupiterEvents.length,
+    bestTime: snapshot.bestTime.time.toISOString(),
     polarSummer: polarSummer.astronomicalState,
     polarWinter: polarWinter.astronomicalState,
     earlyMorningNight: earlyMorning.nightDate,
