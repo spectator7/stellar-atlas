@@ -564,8 +564,51 @@ h3 {
   color: var(--paper-bright);
 }
 
+.catalog-filter-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.visibility-filter {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: #777168;
+  font-size: 9px;
+}
+
+.visibility-filter select,
+.story-browser select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 28px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper-bright);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.result-count {
+  flex: 0 0 auto;
+  padding-bottom: 7px;
+  color: var(--copper-dark);
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 .constellation-list {
   display: grid;
+  max-height: 646px;
+  padding-right: 8px;
+  overflow-y: auto;
+  scrollbar-color: var(--line) transparent;
+  scrollbar-width: thin;
 }
 
 .constellation-item {
@@ -875,6 +918,214 @@ h3 {
   transform: translateX(4px);
 }
 
+.constellation-dossier {
+  margin-top: 90px;
+  padding-top: 54px;
+  border-top: 1px solid var(--line);
+}
+
+.dossier-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: 36px;
+}
+
+.dossier-header .section-index {
+  padding-top: 0;
+}
+
+.dossier-header h3 {
+  margin-top: 10px;
+  font-size: 38px;
+}
+
+.dossier-coordinates {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  text-align: right;
+}
+
+.dossier-coordinates span:last-child {
+  color: var(--teal-dark);
+  font-weight: 650;
+}
+
+.dossier-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.dossier-block {
+  min-width: 0;
+  min-height: 300px;
+  padding: 30px 34px 34px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dossier-block:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
+.dossier-block:nth-child(even) {
+  padding-right: 0;
+  padding-left: 34px;
+}
+
+.dossier-block:nth-child(n + 3) {
+  border-bottom: 0;
+}
+
+.dossier-block-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dossier-block-head p {
+  color: var(--copper-dark);
+  font-family: Georgia, serif;
+  font-size: 11px;
+}
+
+.dossier-block h4 {
+  font-family: "Songti SC", SimSun, serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.key-star-table {
+  border-top: 1px solid var(--line);
+}
+
+.key-star-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(70px, 0.8fr) 62px;
+  gap: 14px;
+  align-items: center;
+  min-height: 50px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.key-star-row strong {
+  font-family: "Songti SC", SimSun, serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.key-star-row span {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.key-star-row span:last-child {
+  color: var(--copper-dark);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.deep-sky-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--line);
+}
+
+.deep-sky-item {
+  min-height: 92px;
+  padding: 14px 14px 14px 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.deep-sky-item:nth-child(even) {
+  padding-right: 0;
+  padding-left: 14px;
+  border-right: 0;
+}
+
+.deep-sky-item strong {
+  display: block;
+  font-family: "Songti SC", SimSun, serif;
+  font-size: 14px;
+}
+
+.deep-sky-item span,
+.deep-sky-empty {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.observing-block > p,
+.source-note {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.dossier-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.dossier-meta div {
+  padding: 12px 12px 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dossier-meta dt {
+  color: #777168;
+  font-size: 9px;
+}
+
+.dossier-meta dd {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.sources-block ul {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.sources-block li {
+  border-bottom: 1px solid var(--line);
+}
+
+.sources-block a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--teal-dark);
+  font-size: 11px;
+}
+
+.sources-block a::after {
+  content: "↗";
+  flex: 0 0 auto;
+}
+
+.source-note {
+  margin-top: 18px;
+  font-size: 10px;
+}
+
 .story-section {
   background: var(--copper-dark);
   color: var(--paper-bright);
@@ -999,44 +1250,51 @@ h3 {
   font-size: 11px;
 }
 
-.story-rail {
-  display: grid;
+.story-browser {
+  padding-top: 15px;
   border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
-.story-rail button {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 8px;
-  align-items: center;
-  min-height: 48px;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  text-align: left;
-  cursor: pointer;
+.story-browser > p {
+  margin-bottom: 14px;
+  color: var(--gold);
+  font-size: 10px;
 }
 
-.story-rail button span:first-child {
-  font-size: 9px;
-}
-
-.story-rail button span:last-child {
-  overflow: hidden;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.story-rail button.is-active,
-.story-rail button:hover {
+.story-browser select {
+  height: 40px;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(9, 10, 13, 0.22);
   color: var(--paper-bright);
 }
 
-.story-rail button.is-active span:first-child {
-  color: var(--gold);
+.story-browser option,
+.story-browser optgroup {
+  background: var(--night-raised);
+  color: var(--paper-bright);
+}
+
+.story-browser dl {
+  margin-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.story-browser dl div {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 10px;
+}
+
+.story-browser dt {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.story-browser dd {
+  color: var(--paper-bright);
 }
 
 .observe-section {
@@ -1479,20 +1737,22 @@ h3 {
     grid-template-columns: 180px minmax(0, 1fr);
   }
 
-  .story-rail {
+  .story-browser {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 2fr;
+    gap: 16px 30px;
   }
 
-  .story-rail button {
-    grid-template-columns: 1fr;
-    gap: 0;
-    padding: 9px 5px;
-    text-align: center;
+  .story-browser > p {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
   }
 
-  .story-rail button span:last-child {
-    font-size: 10px;
+  .story-browser dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 0;
   }
 
   .observe-panel {
@@ -1625,6 +1885,7 @@ h3 {
   .constellation-list {
     grid-template-columns: 1fr 1fr;
     gap: 0 14px;
+    max-height: 560px;
   }
 
   .constellation-item::before {
@@ -1679,6 +1940,44 @@ h3 {
     margin-top: 26px;
   }
 
+  .constellation-dossier {
+    margin-top: 64px;
+    padding-top: 40px;
+  }
+
+  .dossier-header {
+    display: grid;
+    gap: 22px;
+  }
+
+  .dossier-header h3 {
+    font-size: 31px;
+  }
+
+  .dossier-coordinates {
+    text-align: left;
+  }
+
+  .dossier-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dossier-block,
+  .dossier-block:nth-child(even) {
+    min-height: 0;
+    padding: 28px 0 32px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .dossier-block:nth-child(n + 3) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .dossier-block:last-child {
+    border-bottom: 0;
+  }
+
   .story-layout {
     grid-template-columns: 1fr;
     gap: 36px;
@@ -1711,8 +2010,16 @@ h3 {
     font-size: 37px;
   }
 
-  .story-rail {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .story-browser {
+    display: block;
+  }
+
+  .story-browser > p {
+    margin-bottom: 14px;
+  }
+
+  .story-browser dl {
+    margin-top: 22px;
   }
 
   .season-orbit {
@@ -1798,6 +2105,32 @@ h3 {
 
   .chart-toolbar {
     display: grid;
+  }
+
+  .catalog-filter-row {
+    align-items: stretch;
+  }
+
+  .visibility-filter {
+    flex: 1;
+  }
+
+  .key-star-row {
+    grid-template-columns: minmax(100px, 1fr) 54px;
+  }
+
+  .key-star-row span:nth-child(2) {
+    display: none;
+  }
+
+  .deep-sky-list {
+    grid-template-columns: 1fr;
+  }
+
+  .deep-sky-item,
+  .deep-sky-item:nth-child(even) {
+    padding: 13px 0;
+    border-right: 0;
   }
 
   .chart-actions {

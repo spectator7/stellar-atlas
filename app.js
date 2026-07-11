@@ -7,341 +7,7 @@ const SEASONS = {
   winter: { label: "冬季", months: "12–2月", short: "冬" },
 };
 
-const CONSTELLATIONS = [
-  {
-    id: "orion",
-    name: "猎户座",
-    latin: "ORION",
-    season: "winter",
-    direction: "东南至南",
-    glyph: "参",
-    title: "冬夜的巨人",
-    summary: "猎户座横跨天赤道，是冬季夜空最容易辨认的星座之一。参宿四的橙红与参宿七的蓝白分立两端，中间由“腰带三星”钉住轮廓。",
-    caption: "猎户座最醒目的标志，是几乎排成直线的“腰带三星”。",
-    quote: "人生不相见，动如参与商。",
-    facts: [
-      ["最佳月份", "12月至次年2月"],
-      ["最亮星", "参宿七 · Rigel"],
-      ["辨识标志", "参宿三星"],
-      ["所在天区", "天赤道附近"],
-    ],
-    stars: [
-      { name: "Meissa", zh: "觜宿一", x: 48, y: 10, mag: 3.4 },
-      { name: "Betelgeuse", zh: "参宿四", x: 31, y: 27, mag: 0.5 },
-      { name: "Bellatrix", zh: "参宿五", x: 65, y: 29, mag: 1.6 },
-      { name: "Alnitak", zh: "参宿一", x: 40, y: 49, mag: 1.8 },
-      { name: "Alnilam", zh: "参宿二", x: 50, y: 50, mag: 1.7 },
-      { name: "Mintaka", zh: "参宿三", x: 60, y: 48, mag: 2.2 },
-      { name: "Hatsya", zh: "伐三", x: 46, y: 65, mag: 2.8 },
-      { name: "Saiph", zh: "参宿六", x: 34, y: 81, mag: 2.1 },
-      { name: "Rigel", zh: "参宿七", x: 67, y: 83, mag: 0.2 },
-    ],
-    edges: [[0, 1], [0, 2], [1, 3], [2, 5], [3, 4], [4, 5], [3, 7], [5, 8], [4, 6]],
-    stories: {
-      chinese: {
-        origin: "二十八宿 · 西方白虎",
-        title: "参商永隔",
-        paragraphs: [
-          "中国传统星空并不把这里看作一位猎人。猎户座核心区域属于参宿，腰间三颗亮星因此得名“参宿三星”。参宿与东方苍龙中的心宿分处天空两端，此起彼落，很难同时高悬。",
-          "古代传说把参、商的错开写成兄弟失和：阏伯与实沈争斗不休，后来被迁往不同地域，分别主掌辰星与参星。杜甫所写“人生不相见，动如参与商”，便借这对星宿说久别难逢。",
-        ],
-        note: "参宿的范围与现代猎户座高度重合，但传统星官的划分方式不同。",
-      },
-      greek: {
-        origin: "古希腊神话 · Orion",
-        title: "永远追猎的人",
-        paragraphs: [
-          "在希腊神话里，俄里翁是一位骁勇却骄傲的猎人。关于他的结局有许多版本，其中最著名的一支说，他扬言要猎尽世间野兽，于是大地女神派出毒蝎将他刺死。",
-          "众神把猎人与毒蝎同时升上天空，却让它们分居相反季节：天蝎座从东方升起时，猎户座正从西方落下。于是这场追逐永远持续，却永远不会真正相遇。",
-        ],
-        note: "神话存在多个版本；星座故事反映的是文化传统，而非现代天文学命名依据。",
-      },
-    },
-  },
-  {
-    id: "ursa-major",
-    name: "大熊座",
-    latin: "URSA MAJOR",
-    season: "spring",
-    direction: "北方天空",
-    glyph: "斗",
-    title: "指向北方的勺柄",
-    summary: "大熊座中的北斗七星全年可见于中国大部分地区。斗口两星天枢、天璇的连线向外延伸约五倍，便能找到北极星。",
-    caption: "北斗七星只是大熊座的一部分，却是北方天空最重要的路标。",
-    quote: "斗柄东指，天下皆春。",
-    facts: [
-      ["最佳月份", "3月至5月"],
-      ["最亮星", "玉衡 · Alioth"],
-      ["辨识标志", "北斗七星"],
-      ["主要方位", "北方"],
-    ],
-    stars: [
-      { name: "Dubhe", zh: "天枢", x: 14, y: 29, mag: 1.8 },
-      { name: "Merak", zh: "天璇", x: 19, y: 52, mag: 2.4 },
-      { name: "Phecda", zh: "天玑", x: 40, y: 57, mag: 2.4 },
-      { name: "Megrez", zh: "天权", x: 50, y: 42, mag: 3.3 },
-      { name: "Alioth", zh: "玉衡", x: 67, y: 38, mag: 1.8 },
-      { name: "Mizar", zh: "开阳", x: 79, y: 32, mag: 2.2 },
-      { name: "Alkaid", zh: "摇光", x: 93, y: 24, mag: 1.9 },
-    ],
-    edges: [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6]],
-    stories: {
-      chinese: {
-        origin: "紫微垣 · 北斗星官",
-        title: "斗转星移",
-        paragraphs: [
-          "北斗七星由天枢、天璇、天玑、天权、玉衡、开阳、摇光组成。古人把它看作天帝的车，也把斗柄的朝向当作辨别季节与时辰的重要依据。",
-          "当北斗绕北极星旋转，斗柄在不同季节指向不同方位。“斗柄东指，天下皆春；斗柄南指，天下皆夏”的说法，把天空的周期与人间物候连在了一起。",
-        ],
-        note: "北斗是中国星官；现代大熊座还包括许多未画入“勺形”的恒星。",
-      },
-      greek: {
-        origin: "古希腊神话 · Ursa Major",
-        title: "被升上天空的卡利斯托",
-        paragraphs: [
-          "一则希腊神话说，宁芙卡利斯托因赫拉的嫉妒被变成熊。多年后，她的儿子阿卡斯在狩猎时差点误伤母亲，宙斯及时把两人升上天空。",
-          "卡利斯托成为大熊座，阿卡斯则与小熊座或牧夫座相联系。它们绕着北天极久久不落，像一段被固定在夜空中的重逢。",
-        ],
-        note: "希腊、罗马作者对人物身份与结局的记述并不完全一致。",
-      },
-    },
-  },
-  {
-    id: "scorpius",
-    name: "天蝎座",
-    latin: "SCORPIUS",
-    season: "summer",
-    direction: "南方低空",
-    glyph: "心",
-    title: "银河边的赤红心脏",
-    summary: "天蝎座沿着夏季银河蜿蜒，轮廓在明亮星座中格外完整。中央的心宿二呈橙红色，古称“大火”，是辨认天蝎的关键。",
-    caption: "从心宿二向下追随弯曲星链，可以一直找到蝎尾的尾宿八与尾宿九。",
-    quote: "七月流火，九月授衣。",
-    facts: [
-      ["最佳月份", "6月至8月"],
-      ["最亮星", "心宿二 · Antares"],
-      ["辨识标志", "红色心脏与弯尾"],
-      ["主要方位", "南方低空"],
-    ],
-    stars: [
-      { name: "Acrab", zh: "房宿四", x: 25, y: 16, mag: 2.6 },
-      { name: "Dschubba", zh: "房宿三", x: 38, y: 22, mag: 2.3 },
-      { name: "Pi Sco", zh: "房宿一", x: 51, y: 14, mag: 2.9 },
-      { name: "Antares", zh: "心宿二", x: 43, y: 40, mag: 1.1 },
-      { name: "Tau Sco", zh: "心宿一", x: 49, y: 53, mag: 2.8 },
-      { name: "Epsilon Sco", zh: "尾宿二", x: 58, y: 63, mag: 2.3 },
-      { name: "Mu Sco", zh: "尾宿三", x: 66, y: 74, mag: 3.0 },
-      { name: "Shaula", zh: "尾宿八", x: 80, y: 84, mag: 1.6 },
-      { name: "Lesath", zh: "尾宿九", x: 88, y: 78, mag: 2.7 },
-    ],
-    edges: [[0, 1], [1, 2], [1, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8]],
-    stories: {
-      chinese: {
-        origin: "二十八宿 · 东方苍龙",
-        title: "七月流火",
-        paragraphs: [
-          "天蝎座中央的三颗亮星在中国传统中属于心宿，心宿二因颜色赤红而被称为“大火”。它曾是古人观察季节的重要星辰，却并不是今天所说从天而降的火焰。",
-          "《诗经》里的“七月流火”说的是农历七月之后，大火星开始向西沉落，暑气也将转衰。短短四个字，把恒星运行、季节更替与人间劳作连在一起。",
-        ],
-        note: "这里的“流火”指心宿二西沉，不是流星或天气炎热。",
-      },
-      greek: {
-        origin: "古希腊神话 · Scorpius",
-        title: "为猎人而来的毒蝎",
-        paragraphs: [
-          "希腊神话常把天蝎与猎户俄里翁的死亡联系起来。猎人的狂妄触怒了大地女神盖亚，一只毒蝎从土中出现，以微小身躯终结了不可一世的巨人。",
-          "升上天空后，天蝎与猎户仍被安排在相反季节。夏夜天蝎升起，冬夜猎户退场；一个出现，另一个便消失在地平线下。",
-        ],
-        note: "这则故事也解释了天蝎座与猎户座为何不会同时占据夜空中央。",
-      },
-    },
-  },
-  {
-    id: "cygnus",
-    name: "天鹅座",
-    latin: "CYGNUS",
-    season: "summer",
-    direction: "头顶至北方",
-    glyph: "津",
-    title: "沿银河飞行的天鹅",
-    summary: "天鹅座顺着夏季银河展开，天津四、辇道增七与中央亮星构成醒目的十字形，因此也常被称作“北十字”。",
-    caption: "天津四位于十字顶端，也是夏季大三角中最靠北的一颗亮星。",
-    quote: "迢迢牵牛星，皎皎河汉女。",
-    facts: [
-      ["最佳月份", "7月至9月"],
-      ["最亮星", "天津四 · Deneb"],
-      ["辨识标志", "北十字"],
-      ["所在天区", "夏季银河"],
-    ],
-    stars: [
-      { name: "Deneb", zh: "天津四", x: 50, y: 8, mag: 1.3 },
-      { name: "Delta Cyg", zh: "天津二", x: 77, y: 35, mag: 2.9 },
-      { name: "Sadr", zh: "天津一", x: 50, y: 41, mag: 2.2 },
-      { name: "Gienah", zh: "天津九", x: 22, y: 50, mag: 2.5 },
-      { name: "Albireo", zh: "辇道增七", x: 50, y: 87, mag: 3.1 },
-    ],
-    edges: [[0, 2], [1, 2], [2, 3], [2, 4]],
-    stories: {
-      chinese: {
-        origin: "女宿附近 · 天津星官",
-        title: "银河上的渡口",
-        paragraphs: [
-          "天鹅座的大部分亮星位于中国传统的天津星官附近。“天津”不是今天的城市名，而是天河上的渡口或桥梁：横跨银河的一列星，为两岸建立了想象中的通道。",
-          "在牛郎织女故事不断演变的过程中，银河上的桥与渡口也被纳入七夕叙事。天津四高悬在银河之中，使这片天区看起来仿佛真的有一座通往彼岸的星桥。",
-        ],
-        note: "天津星官与现代天鹅座并非完全重合；传统星官跨越今日星座边界。",
-      },
-      greek: {
-        origin: "古希腊神话 · Cygnus",
-        title: "化作天鹅的神与人",
-        paragraphs: [
-          "天鹅座对应多条希腊传说。最广为流传的一支与宙斯化身天鹅接近勒达有关；另一些版本则把它视为为朋友哀悼、最终被诸神升上天空的青年库克诺斯。",
-          "不同故事共享同一种形象：一只展开双翼的白鸟，沿银河缓慢飞行。星座中央的十字结构，恰好勾勒出长颈、身体与两翼。",
-        ],
-        note: "古典文献中的天鹅故事并不只有一个统一版本。",
-      },
-    },
-  },
-  {
-    id: "cassiopeia",
-    name: "仙后座",
-    latin: "CASSIOPEIA",
-    season: "autumn",
-    direction: "东北至北方",
-    glyph: "王",
-    title: "北天的折线王座",
-    summary: "仙后座由五颗主要亮星排成醒目的 W 或 M 形。它与北斗分处北极星两侧，是北斗贴近地平线时寻找北方的重要替代路标。",
-    caption: "五颗亮星组成的折线，会随季节与时刻在 W 与 M 之间转动。",
-    quote: "王良策马，阁道连宫。",
-    facts: [
-      ["最佳月份", "9月至11月"],
-      ["代表亮星", "仙后座 α"],
-      ["辨识标志", "W / M 形折线"],
-      ["主要方位", "东北至北方"],
-    ],
-    stars: [
-      { name: "Caph", zh: "王良一", x: 10, y: 55, mag: 2.3 },
-      { name: "Schedar", zh: "王良四", x: 30, y: 25, mag: 2.2 },
-      { name: "Navi", zh: "策", x: 49, y: 58, mag: 2.2 },
-      { name: "Ruchbah", zh: "阁道三", x: 70, y: 31, mag: 2.7 },
-      { name: "Segin", zh: "阁道二", x: 91, y: 50, mag: 3.4 },
-    ],
-    edges: [[0, 1], [1, 2], [2, 3], [3, 4]],
-    stories: {
-      chinese: {
-        origin: "紫微垣外 · 王良与阁道",
-        title: "御者与天宫栈道",
-        paragraphs: [
-          "仙后座一带在中国传统星图中分属王良、策、阁道等星官。王良是古代著名御者，策代表马鞭；阁道则被想象为连接天宫楼阁的高架道路。",
-          "同一组折线亮星，在这里不再是一位坐在王座上的王后，而是一套围绕车马、道路与宫廷秩序展开的天上系统。星空由此成为人间制度的镜像。",
-        ],
-        note: "王良与阁道只覆盖仙后座的部分恒星，并延伸到邻近天区。",
-      },
-      greek: {
-        origin: "古希腊神话 · Cassiopeia",
-        title: "因夸耀而倒悬的王后",
-        paragraphs: [
-          "卡西奥佩娅是埃塞俄比亚王后。她夸耀自己或女儿安德洛墨达比海中仙女更美，引来海神波塞冬的愤怒，王国因此遭到海怪与洪水惩罚。",
-          "她被放上天空后仍坐在王座上，却随着北天旋转，不时头朝下方。古人把这种倒悬看作对虚荣的永恒提醒。",
-        ],
-        note: "仙后座属于围绕仙女座、仙王座、英仙座展开的一组连贯神话。",
-      },
-    },
-  },
-  {
-    id: "pegasus",
-    name: "飞马座",
-    latin: "PEGASUS",
-    season: "autumn",
-    direction: "东南至头顶",
-    glyph: "室",
-    title: "秋夜的巨大四边形",
-    summary: "飞马座最醒目的部分是“飞马座大四边形”。其中一角今天划归仙女座，但这个近乎空旷的巨大方框仍是秋季寻找周边星座的起点。",
-    caption: "大四边形内部亮星稀少，反而让它成为秋夜最容易识别的几何结构。",
-    quote: "营室中，离宫六星。",
-    facts: [
-      ["最佳月份", "9月至11月"],
-      ["最亮星", "危宿三 · Enif"],
-      ["辨识标志", "飞马大四边形"],
-      ["主要方位", "东南至头顶"],
-    ],
-    stars: [
-      { name: "Scheat", zh: "室宿二", x: 25, y: 18, mag: 2.4 },
-      { name: "Alpheratz", zh: "壁宿二", x: 75, y: 16, mag: 2.1 },
-      { name: "Markab", zh: "室宿一", x: 27, y: 70, mag: 2.5 },
-      { name: "Algenib", zh: "壁宿一", x: 77, y: 72, mag: 2.8 },
-      { name: "Homam", zh: "雷电一", x: 48, y: 81, mag: 3.4 },
-      { name: "Enif", zh: "危宿三", x: 9, y: 88, mag: 2.4 },
-    ],
-    edges: [[0, 1], [1, 3], [3, 2], [2, 0], [2, 4], [4, 5]],
-    stories: {
-      chinese: {
-        origin: "二十八宿 · 室宿与壁宿",
-        title: "天上的宫室",
-        paragraphs: [
-          "飞马座大四边形附近对应传统二十八宿中的室宿、壁宿部分星官。室宿又称营室，被视为天上的宫室、军粮仓或营建之所；壁宿则像宫室东墙。",
-          "秋夜里，这个巨大方框升到高空时，古人看到的并不是飞马躯干，而是一座秩序井然的天上建筑。星形相同，命名背后的世界却完全不同。",
-        ],
-        note: "大四边形东北角的壁宿二，现代星座边界中属于仙女座。",
-      },
-      greek: {
-        origin: "古希腊神话 · Pegasus",
-        title: "从海与鲜血中诞生",
-        paragraphs: [
-          "珀伽索斯是一匹有翼神马。传说英雄珀尔修斯斩下美杜莎的头颅时，它从飞溅的鲜血与海水中诞生，随后飞向群山与众神所在之地。",
-          "后来，英雄柏勒洛丰骑着珀伽索斯战胜怪物喀迈拉，却因企图直登奥林匹斯而跌落。飞马最终被宙斯留在天上，并为他运送雷霆。",
-        ],
-        note: "飞马座大四边形勾勒的是飞马身体，而完整星座只呈现其前半身。",
-      },
-    },
-  },
-  {
-    id: "lyra",
-    name: "天琴座",
-    latin: "LYRA",
-    season: "summer",
-    direction: "东方至头顶",
-    glyph: "织",
-    title: "银河岸边的织女星",
-    summary: "天琴座面积不大，却拥有全天最明亮的恒星之一织女星。它与天津四、河鼓二组成夏季大三角，是寻找夏季银河的绝佳起点。",
-    caption: "先找到明亮的织女星，再辨认旁边由四颗较暗恒星组成的小平行四边形。",
-    quote: "盈盈一水间，脉脉不得语。",
-    facts: [
-      ["最佳月份", "6月至9月"],
-      ["最亮星", "织女一 · Vega"],
-      ["辨识标志", "亮星旁的小四边形"],
-      ["所在天区", "夏季银河西岸"],
-    ],
-    stars: [
-      { name: "Vega", zh: "织女一", x: 24, y: 12, mag: 0.0 },
-      { name: "Zeta Lyr", zh: "织女二", x: 41, y: 35, mag: 4.3 },
-      { name: "Delta Lyr", zh: "织女增三", x: 58, y: 31, mag: 4.2 },
-      { name: "Sheliak", zh: "渐台二", x: 47, y: 67, mag: 3.5 },
-      { name: "Sulafat", zh: "渐台三", x: 69, y: 61, mag: 3.3 },
-    ],
-    edges: [[0, 1], [1, 2], [2, 4], [4, 3], [3, 1]],
-    stories: {
-      chinese: {
-        origin: "牛宿附近 · 织女星官",
-        title: "一年一度的鹊桥",
-        paragraphs: [
-          "织女星在中国传统中称织女一，与两颗较暗的星共同组成织女星官。银河另一侧的河鼓二被民间称为牛郎星，两者隔河相望，逐渐演化出牛郎织女的七夕故事。",
-          "每到农历七月初七，传说喜鹊在银河上搭桥，让分离的恋人短暂相会。真正的织女星距离我们约二十五光年，明亮的蓝白色光芒让它成为夏夜最醒目的主角之一。",
-        ],
-        note: "牛郎星是天鹰座的河鼓二，并不属于天琴座。",
-      },
-      greek: {
-        origin: "古希腊神话 · Lyra",
-        title: "俄耳甫斯的琴声",
-        paragraphs: [
-          "天琴座代表诗人与乐师俄耳甫斯的七弦琴。他的音乐能使野兽停步、树木俯身，甚至打动冥界之主，让亡妻欧律狄刻获得重返人间的机会。",
-          "但他在走出冥界前违背约定回头看了一眼，欧律狄刻再次消失。俄耳甫斯死后，他的琴被缪斯女神放到天空，继续在银河岸边发出无声的乐音。",
-        ],
-        note: "织女星 Vega 的英文名源自阿拉伯语传统，与希腊琴神话属于不同命名层次。",
-      },
-    },
-  },
-];
+const CONSTELLATIONS = window.CONSTELLATIONS || [];
 
 const OBSERVE_DATA = {
   spring: {
@@ -385,6 +51,7 @@ const OBSERVE_DATA = {
 const state = {
   activeId: "orion",
   season: "all",
+  visibility: "all",
   search: "",
   storyMode: "chinese",
   showLines: true,
@@ -399,6 +66,8 @@ const dom = {
   siteNav: document.querySelector("#siteNav"),
   search: document.querySelector("#constellationSearch"),
   seasonFilter: document.querySelector("#seasonFilter"),
+  visibilityFilter: document.querySelector("#visibilityFilter"),
+  resultCount: document.querySelector("#resultCount"),
   list: document.querySelector("#constellationList"),
   chart: document.querySelector("#constellationChart"),
   chartTitle: document.querySelector("#chartSvgTitle"),
@@ -423,7 +92,8 @@ const dom = {
   storyTitle: document.querySelector("#storyTitle"),
   storyBody: document.querySelector("#storyBody"),
   storyNote: document.querySelector("#storyNote"),
-  storyRail: document.querySelector("#storyRail"),
+  storySelect: document.querySelector("#storySelect"),
+  storySeason: document.querySelector("#storySeason"),
   chineseTab: document.querySelector("#chineseStoryTab"),
   greekTab: document.querySelector("#greekStoryTab"),
   heroName: document.querySelector("#heroConstellationName"),
@@ -441,6 +111,15 @@ const dom = {
   observeDirection: document.querySelector("#observeDirection"),
   observeTargets: document.querySelector("#observeTargets"),
   observeGear: document.querySelector("#observeGear"),
+  dossierAbbr: document.querySelector("#dossierAbbr"),
+  dossierTitle: document.querySelector("#dossierTitle"),
+  dossierCoordinates: document.querySelector("#dossierCoordinates"),
+  dossierVisibility: document.querySelector("#dossierVisibility"),
+  keyStarTable: document.querySelector("#keyStarTable"),
+  deepSkyList: document.querySelector("#deepSkyList"),
+  dossierObservation: document.querySelector("#dossierObservation"),
+  dossierMeta: document.querySelector("#dossierMeta"),
+  sourceList: document.querySelector("#sourceList"),
 };
 
 function activeConstellation() {
@@ -490,11 +169,17 @@ function renderList() {
   const query = state.search.trim().toLowerCase();
   const filtered = CONSTELLATIONS.filter((item) => {
     const matchesSeason = state.season === "all" || item.season === state.season;
-    const searchText = `${item.name} ${item.latin} ${item.glyph}`.toLowerCase();
-    return matchesSeason && searchText.includes(query);
+    const visibility = item.profile.visibility;
+    const matchesVisibility = state.visibility === "all"
+      || (state.visibility === "china" && (visibility.includes("中国大部分") || visibility.includes("中国北方")))
+      || (state.visibility === "south" && visibility.includes("华南"))
+      || (state.visibility === "far-south" && visibility.includes("不可见"));
+    const searchText = `${item.name} ${item.latin} ${item.abbr} ${item.glyph} ${item.profile.meaning}`.toLowerCase();
+    return matchesSeason && matchesVisibility && searchText.includes(query);
   });
 
   dom.list.replaceChildren();
+  dom.resultCount.textContent = `${filtered.length} / ${CONSTELLATIONS.length}`;
 
   if (filtered.length === 0) {
     const empty = document.createElement("p");
@@ -513,7 +198,7 @@ function renderList() {
     button.setAttribute("aria-pressed", String(item.id === state.activeId));
     button.innerHTML = `
       <span class="list-number">${padNumber(originalIndex + 1)}</span>
-      <span class="list-name"><strong>${item.name}</strong><small>${item.latin}</small></span>
+      <span class="list-name"><strong>${item.name}</strong><small>${item.abbr} · ${item.latin}</small></span>
       <span class="list-favorite" aria-hidden="true">${state.favorites.has(item.id) ? "★" : ""}</span>
     `;
     button.addEventListener("click", () => setConstellation(item.id, true));
@@ -587,7 +272,14 @@ function renderChart() {
   }
 
   const starGroup = svgElement("g");
-  item.stars.forEach((star) => {
+  const labeledStarIndexes = new Set(
+    item.stars
+      .map((star, index) => ({ index, mag: star.mag }))
+      .sort((left, right) => left.mag - right.mag)
+      .slice(0, 9)
+      .map((entry) => entry.index),
+  );
+  item.stars.forEach((star, starIndex) => {
     const point = chartPoint(star);
     const radius = Math.max(2.5, 7.3 - star.mag * 1.12);
     const halo = svgElement("circle", {
@@ -616,7 +308,7 @@ function renderChart() {
     hit.append(title);
     starGroup.append(halo, dot, hit);
 
-    if (state.showLabels) {
+    if (state.showLabels && labeledStarIndexes.has(starIndex)) {
       const label = svgElement("text", {
         class: "star-label",
         x: point.x + 13,
@@ -661,6 +353,91 @@ function renderDetails() {
   dom.favoriteButton.title = isFavorite ? "取消收藏" : "收藏星座";
 }
 
+function formatRightAscension(longitude) {
+  const degrees = longitude < 0 ? longitude + 360 : longitude;
+  const totalMinutes = Math.round((degrees / 15) * 60);
+  const hours = Math.floor(totalMinutes / 60) % 24;
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+}
+
+function formatDeclination(declination) {
+  const sign = declination >= 0 ? "+" : "−";
+  return `${sign}${Math.abs(declination).toFixed(1)}°`;
+}
+
+function renderDossier() {
+  const item = activeConstellation();
+  const profile = item.profile;
+  dom.dossierAbbr.textContent = item.abbr;
+  dom.dossierTitle.textContent = `${item.name}完整档案`;
+  dom.dossierCoordinates.textContent = `中心赤经 ${formatRightAscension(profile.center.longitude)} · 赤纬 ${formatDeclination(profile.center.declination)}`;
+  dom.dossierVisibility.textContent = profile.visibility;
+  dom.dossierObservation.textContent = profile.observation;
+
+  dom.keyStarTable.replaceChildren();
+  profile.keyStars.forEach((star) => {
+    const row = document.createElement("div");
+    row.className = "key-star-row";
+    const name = document.createElement("strong");
+    const designation = document.createElement("span");
+    const magnitude = document.createElement("span");
+    name.textContent = star.zh ? `${star.zh} · ${star.name}` : star.name;
+    designation.textContent = star.designation || `HIP ${star.hip}`;
+    magnitude.textContent = `m ${Number(star.mag).toFixed(2)}`;
+    row.append(name, designation, magnitude);
+    dom.keyStarTable.append(row);
+  });
+
+  dom.deepSkyList.replaceChildren();
+  if (profile.deepSky.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "deep-sky-empty";
+    empty.textContent = "当前亮深空目录中没有适合入门观测的高亮目标；可从双星、变星或银河星场继续探索。";
+    dom.deepSkyList.append(empty);
+  } else {
+    profile.deepSky.forEach((target) => {
+      const entry = document.createElement("article");
+      entry.className = "deep-sky-item";
+      const name = document.createElement("strong");
+      const type = document.createElement("span");
+      name.textContent = target.commonName ? `${target.name} · ${target.commonName}` : target.name;
+      type.textContent = `${target.type}${target.mag === null ? "" : ` · m ${target.mag}`}`;
+      entry.append(name, type);
+      dom.deepSkyList.append(entry);
+    });
+  }
+
+  const metaRows = [
+    ["名称含义", profile.meaning],
+    ["最佳季节", `${SEASONS[item.season].label} · ${SEASONS[item.season].months}`],
+    ["主要方位", item.direction],
+    ["资料复核", profile.reviewedAt],
+  ];
+  dom.dossierMeta.replaceChildren();
+  metaRows.forEach(([term, description]) => {
+    const row = document.createElement("div");
+    const dt = document.createElement("dt");
+    const dd = document.createElement("dd");
+    dt.textContent = term;
+    dd.textContent = description;
+    row.append(dt, dd);
+    dom.dossierMeta.append(row);
+  });
+
+  dom.sourceList.replaceChildren();
+  profile.sources.forEach((source) => {
+    const li = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = source.url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = source.label;
+    li.append(link);
+    dom.sourceList.append(li);
+  });
+}
+
 function renderStory() {
   const item = activeConstellation();
   const index = CONSTELLATIONS.findIndex((entry) => entry.id === item.id);
@@ -681,17 +458,22 @@ function renderStory() {
   dom.greekTab.setAttribute("aria-selected", String(state.storyMode === "greek"));
 }
 
-function renderStoryRail() {
-  dom.storyRail.replaceChildren();
-  CONSTELLATIONS.forEach((item, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = item.id === state.activeId ? "is-active" : "";
-    button.setAttribute("aria-pressed", String(item.id === state.activeId));
-    button.innerHTML = `<span>${padNumber(index + 1)}</span><span>${item.name}</span>`;
-    button.addEventListener("click", () => setConstellation(item.id, true));
-    dom.storyRail.append(button);
+function renderStorySelector() {
+  const item = activeConstellation();
+  dom.storySelect.replaceChildren();
+  ["spring", "summer", "autumn", "winter"].forEach((season) => {
+    const group = document.createElement("optgroup");
+    group.label = SEASONS[season].label;
+    CONSTELLATIONS.filter((entry) => entry.season === season).forEach((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.id;
+      option.textContent = `${entry.name} · ${entry.latin}`;
+      group.append(option);
+    });
+    dom.storySelect.append(group);
   });
+  dom.storySelect.value = item.id;
+  dom.storySeason.textContent = SEASONS[item.season].label;
 }
 
 function renderHeroReadout() {
@@ -718,8 +500,9 @@ function setConstellation(id, updateAddress = false) {
   renderList();
   renderChart();
   renderDetails();
+  renderDossier();
   renderStory();
-  renderStoryRail();
+  renderStorySelector();
   renderHeroReadout();
   if (updateAddress) updateUrl(id);
 }
@@ -801,6 +584,11 @@ function bindControls() {
     renderList();
   });
 
+  dom.visibilityFilter.addEventListener("change", (event) => {
+    state.visibility = event.target.value;
+    renderList();
+  });
+
   dom.linesToggle.addEventListener("change", () => {
     state.showLines = dom.linesToggle.checked;
     renderChart();
@@ -831,6 +619,7 @@ function bindControls() {
   dom.shareButton.addEventListener("click", copyShareLink);
   dom.chineseTab.addEventListener("click", () => setStoryMode("chinese"));
   dom.greekTab.addEventListener("click", () => setStoryMode("greek"));
+  dom.storySelect.addEventListener("change", (event) => setConstellation(event.target.value, true));
   dom.observeButtons.forEach((button) => {
     button.addEventListener("click", () => setObserveSeason(button.dataset.observeSeason));
   });
@@ -1039,14 +828,19 @@ function setupSkyCanvas() {
 }
 
 function initialize() {
+  if (CONSTELLATIONS.length === 0) {
+    document.body.innerHTML = "<main class=\"noscript\">星座数据加载失败，请刷新页面或检查 data/constellations.js。</main>";
+    return;
+  }
   loadFavorites();
   readInitialConstellation();
   bindControls();
   renderList();
   renderChart();
   renderDetails();
+  renderDossier();
   renderStory();
-  renderStoryRail();
+  renderStorySelector();
   renderHeroReadout();
   setObserveSeason("winter");
   setupRevealAnimations();

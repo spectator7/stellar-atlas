@@ -18,6 +18,7 @@
     <link rel="manifest" href="site.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
     <script>document.documentElement.classList.add("js");</script>
+    <script src="data/constellations.js" defer></script>
     <script src="app.js" defer></script>
     <title>天象志 · 可探索的星空图鉴</title>
   </head>
@@ -72,7 +73,7 @@
 
         <div class="hero-scene-controls" aria-label="切换星座">
           <button id="heroPrev" class="icon-button" type="button" title="上一个星座" aria-label="上一个星座">‹</button>
-          <span id="heroSceneIndex">01 / 07</span>
+          <span id="heroSceneIndex">01 / 88</span>
           <button id="heroNext" class="icon-button" type="button" title="下一个星座" aria-label="下一个星座">›</button>
         </div>
 
@@ -87,11 +88,11 @@
           <p class="section-index">01 / 星图</p>
           <div>
             <h2 id="atlasTitle">把夜空读成一张地图</h2>
-            <p>七幅北半球代表星图，串起季节、亮星与古老叙事。</p>
+            <p>国际天文学联合会划定的 88 个现代星座，连接真实星位、深空目标与多种文化叙事。</p>
           </div>
           <dl class="section-stats" aria-label="图鉴统计">
-            <div><dt>07</dt><dd>星座图</dd></div>
-            <div><dt>14</dt><dd>文化故事</dd></div>
+            <div><dt>88</dt><dd>现代星座</dd></div>
+            <div><dt>176</dt><dd>文化叙事</dd></div>
             <div><dt>04</dt><dd>观测季节</dd></div>
           </dl>
         </div>
@@ -110,6 +111,19 @@
               <button type="button" data-season="summer" aria-pressed="false">夏</button>
               <button type="button" data-season="autumn" aria-pressed="false">秋</button>
               <button type="button" data-season="winter" aria-pressed="false">冬</button>
+            </div>
+
+            <div class="catalog-filter-row">
+              <label class="visibility-filter">
+                <span>可见范围</span>
+                <select id="visibilityFilter">
+                  <option value="all">全部天区</option>
+                  <option value="china">中国大部分可见</option>
+                  <option value="south">华南低纬可见</option>
+                  <option value="far-south">极南天星座</option>
+                </select>
+              </label>
+              <span id="resultCount" class="result-count">88 / 88</span>
             </div>
 
             <div class="constellation-list" id="constellationList"></div>
@@ -150,7 +164,7 @@
               </svg>
               <figcaption>
                 <span id="chartCaption">猎户座最醒目的标志，是几乎排成直线的“腰带三星”。</span>
-                <span class="chart-scale">视场 40°</span>
+                <span class="chart-scale">J2000 星位</span>
               </figcaption>
             </figure>
           </div>
@@ -167,6 +181,55 @@
             <a class="story-link" href="#stories">展开双重叙事 <span aria-hidden="true">→</span></a>
           </aside>
         </div>
+
+        <section class="constellation-dossier reveal" id="dossier" aria-labelledby="dossierTitle">
+          <header class="dossier-header">
+            <div>
+              <p class="section-index">星座档案 · <span id="dossierAbbr">ORI</span></p>
+              <h3 id="dossierTitle">猎户座完整档案</h3>
+            </div>
+            <div class="dossier-coordinates">
+              <span id="dossierCoordinates">中心赤经 / 赤纬</span>
+              <span id="dossierVisibility">中国大部分地区可见</span>
+            </div>
+          </header>
+
+          <div class="dossier-grid">
+            <section class="dossier-block key-stars-block" aria-labelledby="keyStarsTitle">
+              <div class="dossier-block-head">
+                <p>01</p>
+                <h4 id="keyStarsTitle">主要亮星</h4>
+              </div>
+              <div class="key-star-table" id="keyStarTable"></div>
+            </section>
+
+            <section class="dossier-block deep-sky-block" aria-labelledby="deepSkyTitle">
+              <div class="dossier-block-head">
+                <p>02</p>
+                <h4 id="deepSkyTitle">深空目标</h4>
+              </div>
+              <div class="deep-sky-list" id="deepSkyList"></div>
+            </section>
+
+            <section class="dossier-block observing-block" aria-labelledby="observingRouteTitle">
+              <div class="dossier-block-head">
+                <p>03</p>
+                <h4 id="observingRouteTitle">观测路线</h4>
+              </div>
+              <p id="dossierObservation"></p>
+              <dl class="dossier-meta" id="dossierMeta"></dl>
+            </section>
+
+            <section class="dossier-block sources-block" aria-labelledby="sourcesTitle">
+              <div class="dossier-block-head">
+                <p>04</p>
+                <h4 id="sourcesTitle">资料与口径</h4>
+              </div>
+              <ul id="sourceList"></ul>
+              <p class="source-note">星座边界采用现代 88 星座体系；中国传统星官按文化天区说明，不作一一对应。</p>
+            </section>
+          </div>
+        </section>
       </section>
 
       <section class="story-section section-band" id="stories" aria-labelledby="storiesTitle">
@@ -186,7 +249,7 @@
           <article class="story-article">
             <div class="story-tabs" role="tablist" aria-label="故事来源">
               <button id="chineseStoryTab" type="button" role="tab" aria-selected="true" aria-controls="storyBody">中国星官</button>
-              <button id="greekStoryTab" type="button" role="tab" aria-selected="false" aria-controls="storyBody">希腊神话</button>
+              <button id="greekStoryTab" type="button" role="tab" aria-selected="false" aria-controls="storyBody">西方传统</button>
             </div>
             <p class="story-origin" id="storyOrigin">三垣二十八宿 · 西方白虎</p>
             <h3 id="storyTitle">参商永隔</h3>
@@ -194,7 +257,18 @@
             <p class="story-note" id="storyNote"></p>
           </article>
 
-          <nav class="story-rail" id="storyRail" aria-label="选择星座故事"></nav>
+          <aside class="story-browser" aria-label="选择星座故事">
+            <p>故事索引</p>
+            <label>
+              <span class="visually-hidden">选择星座</span>
+              <select id="storySelect"></select>
+            </label>
+            <dl>
+              <div><dt>现代星座</dt><dd>88</dd></div>
+              <div><dt>叙事视角</dt><dd>2</dd></div>
+              <div><dt>当前季节</dt><dd id="storySeason">冬季</dd></div>
+            </dl>
+          </aside>
         </div>
       </section>
 
