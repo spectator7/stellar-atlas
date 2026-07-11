@@ -149,6 +149,8 @@ const dom = {
 };
 
 let celestialAtlas;
+let observingAssistant;
+let storyLibrary;
 
 function activeConstellation() {
   return CONSTELLATIONS.find((item) => item.id === state.activeId) || CONSTELLATIONS[0];
@@ -385,6 +387,9 @@ function renderStory() {
   dom.storyNote.textContent = story.note;
   dom.chineseTab.setAttribute("aria-selected", String(state.storyMode === "chinese"));
   dom.greekTab.setAttribute("aria-selected", String(state.storyMode === "greek"));
+  dom.chineseTab.tabIndex = state.storyMode === "chinese" ? 0 : -1;
+  dom.greekTab.tabIndex = state.storyMode === "greek" ? 0 : -1;
+  dom.storyBody.setAttribute("aria-labelledby", state.storyMode === "chinese" ? "chineseStoryTab" : "greekStoryTab");
 }
 
 function renderStorySelector() {
@@ -580,6 +585,19 @@ function bindControls() {
   dom.shareButton.addEventListener("click", copyShareLink);
   dom.chineseTab.addEventListener("click", () => setStoryMode("chinese"));
   dom.greekTab.addEventListener("click", () => setStoryMode("greek"));
+  [dom.chineseTab, dom.greekTab].forEach((tab, index, tabs) => {
+    tab.addEventListener("keydown", (event) => {
+      let targetIndex = index;
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") targetIndex = (index + 1) % tabs.length;
+      else if (event.key === "ArrowLeft" || event.key === "ArrowUp") targetIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === "Home") targetIndex = 0;
+      else if (event.key === "End") targetIndex = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      tabs[targetIndex].click();
+      tabs[targetIndex].focus();
+    });
+  });
   dom.storySelect.addEventListener("change", (event) => setConstellation(event.target.value, true));
   dom.observeButtons.forEach((button) => {
     button.addEventListener("click", () => setObserveSeason(button.dataset.observeSeason));
@@ -831,6 +849,44 @@ function initializeCelestialAtlas() {
   }
 }
 
+function selectConstellationFromFeature(id) {
+  setConstellation(id, true, true);
+  document.querySelector("#atlas")?.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "start",
+  });
+}
+
+function initializeObservingAssistant() {
+  if (!window.TonightObserver || !window.OBSERVING_DATA || !window.Astronomy) return;
+  try {
+    observingAssistant = new window.TonightObserver({
+      constellations: CONSTELLATIONS,
+      skyAtlas: window.SKY_ATLAS,
+      onSelectConstellation: selectConstellationFromFeature,
+      onToast: showToast,
+    });
+  } catch (error) {
+    console.error(error);
+    const status = document.querySelector("#observerFormStatus");
+    if (status) status.textContent = "观测助手初始化失败，请刷新页面后重试。";
+  }
+}
+
+function initializeStoryLibrary() {
+  if (!window.StoryLibrary || !Array.isArray(window.STORY_TOPICS)) return;
+  try {
+    storyLibrary = new window.StoryLibrary({
+      topics: window.STORY_TOPICS,
+      constellations: CONSTELLATIONS,
+      onSelectConstellation: selectConstellationFromFeature,
+      onToast: showToast,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 function initialize() {
   if (CONSTELLATIONS.length === 0) {
     document.body.innerHTML = "<main class=\"noscript\">星座数据加载失败，请刷新页面或检查 data/constellations.js。</main>";
@@ -840,6 +896,8 @@ function initialize() {
   readInitialConstellation();
   bindControls();
   initializeCelestialAtlas();
+  initializeStoryLibrary();
+  initializeObservingAssistant();
   renderList();
   renderChart(true);
   renderDetails();

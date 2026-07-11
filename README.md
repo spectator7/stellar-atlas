@@ -10,6 +10,10 @@
 - 依据视星等与 B−V 色指数表现恒星亮度、大小和颜色
 - 点击恒星查看 Hipparcos 编号、坐标、星等、颜色与所属星座
 - 中国传统星官与西方神话、命名史的双重叙事
+- 12 篇独立星空专题，含时间线、人物、原典短引、关系图与资料来源
+- 按城市、经纬度、日期、时间和时区生成当地地平星图
+- 月相、黑暗窗口、行星位置、月度天象与可分享观测清单
+- 可选天气查询与可手动修正的 Bortle 光污染等级
 - 每个星座的完整档案、观测路线与资料来源
 - 北纬 30°–45° 地区的四季入门观测线索
 - 本地收藏、分享链接与响应式移动端布局
@@ -38,6 +42,9 @@ python -m http.server 4173
 ```bash
 node scripts/validate-content.mjs
 node scripts/validate-sky-data.mjs
+node scripts/validate-story-topics.mjs
+node scripts/validate-observing-data.mjs
+node scripts/smoke-runtime.mjs
 ```
 
 ## 发布到 GitHub Pages
@@ -63,9 +70,9 @@ git push -u origin main
 
 ## 自定义
 
-页面状态与四季观测概览位于 `app.js`，连续星图的投影、绘制和交互位于 `sky-map.js`。颜色、字号和响应式布局集中在 `styles.css` 的变量与媒体查询中。
+页面状态与四季观测概览位于 `app.js`，连续星图的投影、绘制和交互位于 `sky-map.js`，今晚观测助手位于 `observing.js`，专题阅读器位于 `story-library.js`。颜色、字号和响应式布局集中在 `styles.css` 的变量与媒体查询中。
 
-88 星座内容位于 `data/constellations.js`，连续星图使用的恒星、边界、连线和深空天体数据位于 `data/sky-atlas.js`。浏览器端依赖存放在 `assets/vendor/`，第三方天文数据来源与许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+88 星座内容位于 `data/constellations.js`，连续星图使用的恒星、边界、连线和深空天体数据位于 `data/sky-atlas.js`。观测地点、光污染和流星雨资料位于 `data/observing-data.js`，故事专题位于 `data/story-topics.js` 与 `data/story-topics-extra.js`。浏览器端依赖存放在 `assets/vendor/`，第三方天文数据来源与许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## Roadmap
 
@@ -73,7 +80,7 @@ git push -u origin main
 
 ## 说明
 
-连续星图采用 J2000 赤经赤纬数据，适合星座辨认和天区浏览，但不用于精密测量、望远镜自动指向或航海定位。页面其他装饰性星空和部分内容缩略图仍可能使用视觉归一化坐标。中国传统星官与现代国际天文学联合会的星座边界不是一一对应关系，项目在相关故事中保留了这一区别。
+连续星图采用 J2000 赤经赤纬数据，适合星座辨认和天区浏览，但不用于精密测量、望远镜自动指向或航海定位。地平星图中的星座升落以星座中心代表位置近似，不能代替完整边界或当地无遮挡地平线。设备定位只在用户主动点击后调用；天气查询默认关闭，启用时会向 Open-Meteo 发送约两位小数的坐标和海拔。中国传统星官与现代国际天文学联合会的星座边界不是一一对应关系，项目在相关故事中保留了这一区别。
 
 ## License
 

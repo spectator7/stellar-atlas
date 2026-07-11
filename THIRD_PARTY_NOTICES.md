@@ -24,7 +24,7 @@ The D3 bundle includes the [Delaunator](https://github.com/mapbox/delaunator) tr
 
 ## Astronomy Engine 2.1.19
 
-The browser bundle at `assets/vendor/astronomy-engine-2.1.19.min.js` is [Astronomy Engine](https://github.com/cosinekitty/astronomy) version [2.1.19](https://www.npmjs.com/package/astronomy-engine/v/2.1.19). It is used to convert J2000 equatorial coordinates to coordinates of date and to determine IAU constellation membership. The minified bundle retains the complete MIT notice; the text is reproduced below.
+The browser bundle at `assets/vendor/astronomy-engine-2.1.19.min.js` is [Astronomy Engine](https://github.com/cosinekitty/astronomy) version [2.1.19](https://www.npmjs.com/package/astronomy-engine/v/2.1.19). It is used to convert J2000 equatorial coordinates, determine IAU constellation membership, calculate horizontal positions, rise/set events, twilight, lunar phases, planetary elongation, and angular approaches. The minified bundle retains the complete MIT notice; the text is reproduced below.
 
 MIT License
 
@@ -62,6 +62,10 @@ Redistribution and use in source and binary forms, with or without modification,
 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+## Open-Meteo
+
+Optional hourly weather forecasts are requested from the [Open-Meteo Forecast API](https://open-meteo.com/en/docs). Weather lookup is disabled by default. When a visitor explicitly enables it, the site sends coordinates rounded to two decimal places, elevation, timezone, and the selected forecast hour. Astronomy calculations do not depend on this request.
 
 ## Content notes
 

@@ -44,9 +44,8 @@
 
   function constellationCenter(item) {
     const rawLongitude = Number(item?.profile?.center?.longitude ?? 0);
-    const longitude = Math.abs(rawLongitude) <= 24 ? rawLongitude * 15 : rawLongitude;
     return {
-      longitude: normalizeLongitude(longitude),
+      longitude: normalizeLongitude(rawLongitude),
       declination: clamp(Number(item?.profile?.center?.declination ?? 0), -89, 89),
     };
   }

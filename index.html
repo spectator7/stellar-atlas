@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="天象志是一部可探索的中文星座图鉴，收录星座连线、东西方故事与北半球观测线索。"
+      content="天象志是一部可探索的中文星空图鉴，收录 88 星座、连续星图、今晚观测助手与跨文明故事专题。"
     />
     <meta name="theme-color" content="#090a0d" />
     <meta property="og:title" content="天象志 · 可探索的星空图鉴" />
     <meta
       property="og:description"
-      content="在星图、神话与真实夜空之间，重新认识头顶的群星。"
+      content="探索 88 星座，生成当地今晚星空，并沿时间线阅读中国与世界的星空故事。"
     />
     <meta property="og:type" content="website" />
     <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
@@ -20,9 +20,14 @@
     <script>document.documentElement.classList.add("js");</script>
     <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
     <script src="assets/vendor/astronomy-engine-2.1.19.min.js" defer></script>
+    <script src="data/observing-data.js" defer></script>
+    <script src="data/story-topics.js" defer></script>
+    <script src="data/story-topics-extra.js" defer></script>
     <script src="data/sky-atlas.js" defer></script>
     <script src="data/constellations.js" defer></script>
     <script src="sky-map.js" defer></script>
+    <script src="observing.js" defer></script>
+    <script src="story-library.js" defer></script>
     <script src="app.js" defer></script>
     <title>天象志 · 可探索的星空图鉴</title>
   </head>
@@ -49,7 +54,7 @@
 
       <nav class="site-nav" id="siteNav" aria-label="主导航">
         <a href="#atlas">星图</a>
-        <a href="#stories">故事</a>
+        <a href="#story-library">专题</a>
         <a href="#observe">观测</a>
         <a class="nav-github" href="#publish">GitHub</a>
       </nav>
@@ -60,12 +65,12 @@
         <canvas id="skyCanvas" aria-hidden="true"></canvas>
 
         <div class="hero-copy">
-          <p class="eyebrow">北半球 · 星空文化图鉴</p>
+          <p class="eyebrow">全天星图 · 星空文化与实用观测</p>
           <h1 id="heroTitle">天象志</h1>
           <p class="hero-subtitle">在星图、神话与真实夜空之间，<br />重新认识头顶的群星。</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#atlas">进入星图</a>
-            <a class="button button-quiet" href="#stories">阅读星空故事</a>
+            <a class="button button-quiet" href="#story-library">阅读星空专题</a>
           </div>
         </div>
 
@@ -346,13 +351,281 @@
         </div>
       </section>
 
+      <section class="story-library-section section-band" id="story-library" aria-labelledby="storyLibraryTitle">
+        <div class="section-heading story-library-heading reveal">
+          <p class="section-index">02B / 专题资料库</p>
+          <div>
+            <h2 id="storyLibraryTitle">星空故事成为一套可以查证的知识网络</h2>
+            <p>从三垣二十八宿到希腊英雄谱系，从阿拉伯星名到航海星空；每篇专题标注时代、相关天区与资料来源。</p>
+          </div>
+          <dl class="section-stats" aria-label="专题资料库统计">
+            <div><dt id="topicStatCount">12</dt><dd>首批专题</dd></div>
+            <div><dt id="topicCultureCount">19</dt><dd>文明视角</dd></div>
+            <div><dt id="topicConstellationCount">34</dt><dd>关联星座</dd></div>
+          </dl>
+        </div>
+
+        <div class="topic-toolbar reveal" aria-label="筛选故事专题">
+          <label class="topic-search">
+            <span>搜索专题</span>
+            <input id="topicSearch" type="search" placeholder="标题、人物、星官或文明" autocomplete="off" aria-controls="topicList" />
+          </label>
+          <label>
+            <span>文明</span>
+            <select id="topicCultureFilter">
+              <option value="all">全部文明</option>
+            </select>
+          </label>
+          <label>
+            <span>时代</span>
+            <select id="topicEraFilter">
+              <option value="all">全部时代</option>
+            </select>
+          </label>
+          <output id="topicResultCount" aria-live="polite">12 篇</output>
+        </div>
+
+        <div class="topic-workspace reveal">
+          <aside class="topic-index" aria-label="专题目录">
+            <p>专题索引</p>
+            <div id="topicList"></div>
+          </aside>
+
+          <article class="topic-reader" aria-labelledby="topicTitle">
+            <header class="topic-header">
+              <div>
+                <p class="topic-kicker" id="topicKicker">中国星空体系</p>
+                <h3 id="topicTitle">三垣二十八宿总览</h3>
+              </div>
+              <button id="topicShare" class="text-button" type="button">复制专题链接</button>
+            </header>
+            <p class="topic-summary" id="topicSummary"></p>
+            <dl class="topic-meta">
+              <div><dt>时代范围</dt><dd id="topicPeriod"></dd></div>
+              <div><dt>文明视角</dt><dd id="topicCultures"></dd></div>
+              <div><dt>阅读长度</dt><dd id="topicReadingTime"></dd></div>
+              <div><dt>最后核对</dt><dd id="topicReviewedAt"></dd></div>
+            </dl>
+            <div class="topic-sections" id="topicSections"></div>
+          </article>
+
+          <aside class="topic-context" aria-labelledby="topicRelationTitle">
+            <div class="topic-context-head">
+              <p>关系图</p>
+              <h3 id="topicRelationTitle">人物、星官与星座</h3>
+            </div>
+            <canvas id="topicRelationCanvas" width="420" height="360" role="img" aria-label="当前专题的关系网络"></canvas>
+            <ul id="topicRelationList" class="visually-hidden"></ul>
+            <div class="topic-related">
+              <p>相关现代星座</p>
+              <div id="topicRelatedConstellations"></div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="topic-evidence reveal">
+          <section aria-labelledby="topicTimelineTitle">
+            <header><p>时间线</p><h3 id="topicTimelineTitle">文本与观测的年代坐标</h3></header>
+            <ol id="topicTimeline"></ol>
+          </section>
+          <section aria-labelledby="topicComparisonTitle">
+            <header><p>比较阅读</p><h3 id="topicComparisonTitle">同一片星空的不同组织方式</h3></header>
+            <div id="topicComparisons"></div>
+          </section>
+          <section aria-labelledby="topicSourcesTitle">
+            <header><p>资料来源</p><h3 id="topicSourcesTitle">可继续查阅的线索</h3></header>
+            <ol id="topicSources"></ol>
+          </section>
+        </div>
+
+        <nav class="topic-pagination reveal" aria-label="切换故事专题">
+          <button id="topicPrev" type="button"><span aria-hidden="true">←</span><span>上一篇</span></button>
+          <button id="topicNext" type="button"><span>下一篇</span><span aria-hidden="true">→</span></button>
+        </nav>
+      </section>
+
       <section class="observe-section section-band" id="observe" aria-labelledby="observeTitle">
         <div class="section-heading observe-heading reveal">
-          <p class="section-index">03 / 观测</p>
+          <p class="section-index">03 / 今晚星空</p>
           <div>
-            <h2 id="observeTitle">跟着季节找到它们</h2>
-            <p>以下时段适用于中国大部分北纬 30°–45° 地区，面向入门裸眼观测。</p>
+            <h2 id="observeTitle">把地点与时间交给星空，得到今晚真正可执行的计划</h2>
+            <p>天文结果在浏览器本地计算；设备定位只在主动点击后调用，天气默认关闭且不会影响星空计算。</p>
           </div>
+        </div>
+
+        <div class="observer-workbench reveal">
+          <form class="observer-form" id="observerForm">
+            <header>
+              <p>观测条件</p>
+              <h3>地点、时间与天空亮度</h3>
+            </header>
+
+            <div class="observer-control-grid">
+              <label class="observer-city-control">
+                <span>城市预设</span>
+                <select id="observerLocation"></select>
+              </label>
+              <button id="useDeviceLocation" class="observer-location-button" type="button" title="使用设备位置">
+                <span aria-hidden="true">⌖</span><span>使用设备位置</span>
+              </button>
+
+              <label>
+                <span>纬度</span>
+                <input id="observerLatitude" type="number" min="-90" max="90" step="0.0001" inputmode="decimal" required />
+              </label>
+              <label>
+                <span>经度</span>
+                <input id="observerLongitude" type="number" min="-180" max="180" step="0.0001" inputmode="decimal" required />
+              </label>
+              <label>
+                <span>海拔 / 米</span>
+                <input id="observerElevation" type="number" min="-500" max="9000" step="1" inputmode="numeric" required />
+              </label>
+
+              <label class="observer-datetime-control">
+                <span>当地日期与时间</span>
+                <input id="observerDateTime" type="datetime-local" required />
+              </label>
+              <button id="useCurrentTime" class="observer-now-button observer-time-button" type="button">此刻</button>
+              <button id="useTonightTime" class="observer-now-button observer-time-button" type="button">今晚</button>
+
+              <label class="observer-timezone-control">
+                <span>时区</span>
+                <select id="observerTimezone"></select>
+              </label>
+              <label class="observer-bortle-control">
+                <span>光污染等级</span>
+                <select id="observerBortle"></select>
+              </label>
+            </div>
+
+            <div class="observer-form-footer">
+              <div class="observer-privacy-notes">
+                <p>城市等级是中心城区估计值，可按实际观测地手动修改。</p>
+                <label class="weather-consent">
+                  <input id="weatherConsent" type="checkbox" />
+                  <span>同时查询天气：向 Open-Meteo 发送约 0.01° 坐标与海拔</span>
+                </label>
+              </div>
+              <button id="generateTonight" class="button button-primary" type="submit">生成今晚星空</button>
+            </div>
+            <p id="observerFormStatus" class="observer-form-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <section class="tonight-overview" aria-labelledby="tonightHeadline">
+            <header class="tonight-overview-header">
+              <div>
+                <p id="tonightLocation">北京 · 39.90°N</p>
+                <h3 id="tonightHeadline">今晚观测条件</h3>
+              </div>
+              <span id="nightQuality" class="night-quality" data-level="pending">计算中</span>
+            </header>
+            <p id="nightQualityReason" class="night-quality-reason">正在计算太阳高度、月光与可见星区。</p>
+            <dl class="tonight-meta">
+              <div><dt>当地时间</dt><dd id="tonightDate"></dd></div>
+              <div><dt>坐标</dt><dd id="tonightCoordinates"></dd></div>
+              <div><dt>理论极限星等</dt><dd id="tonightMagnitudeLimit"></dd></div>
+            </dl>
+
+            <figure class="horizon-figure">
+              <canvas id="horizonCanvas" width="760" height="540" role="img" aria-label="当地时间的地平星图"></canvas>
+              <figcaption>
+                <span id="horizonCaption">几何地平线以上的亮星、星座中心与行星</span>
+                <span>方位角 · 高度角</span>
+              </figcaption>
+            </figure>
+            <ol id="horizonObjectList" class="visually-hidden"></ol>
+          </section>
+        </div>
+
+        <div class="condition-strip reveal" aria-label="今晚观测条件摘要">
+          <article>
+            <p>黑暗窗口</p>
+            <strong id="darknessValue">计算中</strong>
+            <span id="darknessDetail"></span>
+            <small id="nightWindow"></small>
+          </article>
+          <article>
+            <p>月相与月光</p>
+            <div class="moon-condition-row">
+              <span id="moonPhaseVisual" class="moon-phase-visual" aria-hidden="true"></span>
+              <strong id="moonValue">计算中</strong>
+            </div>
+            <span id="moonDetail"></span>
+            <small id="moonTimes"></small>
+          </article>
+          <article>
+            <div class="condition-card-head">
+              <p>天气与云量</p>
+              <button id="refreshWeather" type="button" title="刷新天气" aria-label="刷新天气">↻</button>
+            </div>
+            <strong id="weatherValue">等待查询</strong>
+            <span id="weatherDetail"></span>
+            <small id="weatherTimestamp"></small>
+          </article>
+          <article>
+            <p>光污染</p>
+            <strong id="pollutionValue">Bortle 9</strong>
+            <span id="pollutionDetail"></span>
+            <small id="pollutionSource">城市中心估计，可手动修正</small>
+          </article>
+          <article>
+            <p>地平线以上行星</p>
+            <strong id="planetValue">计算中</strong>
+            <span id="planetDetail"></span>
+            <small>按几何高度统计；肉眼可见性还取决于日光、日距和天气</small>
+          </article>
+        </div>
+
+        <div class="tonight-results reveal">
+          <section class="visible-sky-section" aria-labelledby="visibleSkyTitle">
+            <header>
+              <div><p>可见星座</p><h3 id="visibleSkyTitle">地平线以上的星座</h3></div>
+              <div class="visible-sky-controls">
+                <label>
+                  <span>最低高度</span>
+                  <select id="visibleAltitudeFilter">
+                    <option value="0">0°</option>
+                    <option value="10" selected>10°</option>
+                    <option value="20">20°</option>
+                    <option value="30">30°</option>
+                  </select>
+                </label>
+                <output id="visibleConstellationCount">0 个</output>
+              </div>
+            </header>
+            <div id="visibleConstellationList" class="visible-constellation-list"></div>
+            <p class="calculation-note">这里展示几何地平线关系。星座升落以中心代表位置计算；日光、地形、建筑和星座跨度会使实际可见情况不同。</p>
+          </section>
+
+          <section class="tonight-events" aria-labelledby="tonightEventsTitle">
+            <header><p>月度事件</p><h3 id="tonightEventsTitle">月相、流星雨与行星合月</h3></header>
+            <div id="eventList" class="event-list"></div>
+            <div class="planet-table-wrap">
+              <p>行星位置</p>
+              <div id="planetList" class="planet-list"></div>
+            </div>
+          </section>
+
+          <section class="observation-plan" aria-labelledby="observationPlanTitle">
+            <header>
+              <div><p>观测清单</p><h3 id="observationPlanTitle">带到户外的今晚计划</h3></div>
+              <output id="planCount">0 项</output>
+            </header>
+            <div id="observationChecklist" class="observation-checklist"></div>
+            <div class="plan-actions">
+              <button id="copyPlan" type="button">复制清单</button>
+              <button id="sharePlan" type="button">分享</button>
+              <button id="downloadPlan" type="button">下载文本</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="seasonal-reference reveal">
+          <header>
+            <p>季节参考</p>
+            <h3>不设置地点时，也可以从四季亮星开始</h3>
+          </header>
         </div>
 
         <div class="season-orbit reveal" aria-label="四季星空">

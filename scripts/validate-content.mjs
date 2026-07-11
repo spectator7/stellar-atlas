@@ -30,10 +30,27 @@ constellations.forEach((item) => {
   assert(Array.isArray(item.edges) && item.edges.length >= 1, `${prefix}: chart edges are missing`);
   assert(item.edges.every(([from, to]) => item.stars[from] && item.stars[to]), `${prefix}: chart edge references an invalid star`);
   assert(item.profile?.keyStars?.length >= 3, `${prefix}: key-star list is incomplete`);
+  assert(Number.isFinite(item.profile?.center?.longitude)
+    && item.profile.center.longitude >= -180 && item.profile.center.longitude <= 180,
+  `${prefix}: center longitude must be J2000 degrees in [-180, 180]`);
+  assert(Number.isFinite(item.profile?.center?.declination)
+    && item.profile.center.declination >= -90 && item.profile.center.declination <= 90,
+  `${prefix}: center declination must be degrees in [-90, 90]`);
   assert(typeof item.profile?.observation === "string" && item.profile.observation.length >= 40, `${prefix}: observation guide is incomplete`);
   assert(item.stories?.chinese?.paragraphs?.length === 2, `${prefix}: Chinese story requires two paragraphs`);
   assert(item.stories?.greek?.paragraphs?.length === 2, `${prefix}: Western story requires two paragraphs`);
   assert(item.profile?.sources?.length >= 3, `${prefix}: source list is incomplete`);
+});
+
+const coordinateSentinels = {
+  ORI: { minimum: 80, maximum: 90 },
+  AQL: { minimum: -80, maximum: -60 },
+  UMA: { minimum: 150, maximum: 180 },
+};
+Object.entries(coordinateSentinels).forEach(([abbr, range]) => {
+  const item = constellations.find((entry) => entry.abbr === abbr);
+  assert(item && item.profile.center.longitude >= range.minimum && item.profile.center.longitude <= range.maximum,
+    `${abbr}: center longitude no longer matches the J2000-degree convention`);
 });
 
 if (failures.length > 0) {
