@@ -1,10 +1,13 @@
 const CACHE_PREFIX = "stellar-atlas-";
-const CACHE_VERSION = "2026-07-11-v1";
+const CACHE_VERSION = "2026-07-12-v2";
 const STATIC_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
 const CORE_ASSETS = [
   "./",
   "./index.html",
+  "./atlas.html",
+  "./observe.html",
+  "./stories.html",
   "./404.html",
   "./styles.css",
   "./site.webmanifest",

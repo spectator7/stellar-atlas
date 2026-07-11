@@ -38,7 +38,7 @@
       "name": "探索全天星图",
       "short_name": "星图",
       "description": "浏览 88 个现代星座与深空目标",
-      "url": "./#atlas",
+      "url": "./atlas.html",
       "icons": [
         {
           "src": "assets/mark.svg",
@@ -51,7 +51,7 @@
       "name": "今晚星空",
       "short_name": "今晚",
       "description": "按地点和时间生成观测建议",
-      "url": "./#observe",
+      "url": "./observe.html",
       "icons": [
         {
           "src": "assets/mark.svg",
@@ -64,7 +64,7 @@
       "name": "星空故事专题",
       "short_name": "专题",
       "description": "阅读中国与世界的星空文化专题",
-      "url": "./#story-library",
+      "url": "./stories.html",
       "icons": [
         {
           "src": "assets/mark.svg",

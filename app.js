@@ -8,6 +8,7 @@ const SEASONS = {
 };
 
 const CONSTELLATIONS = window.CONSTELLATIONS || [];
+const PAGE = document.body.dataset.page || "home";
 
 const OBSERVE_DATA = {
   spring: {
@@ -122,6 +123,7 @@ const dom = {
   storyNote: document.querySelector("#storyNote"),
   storySelect: document.querySelector("#storySelect"),
   storySeason: document.querySelector("#storySeason"),
+  storyLink: document.querySelector("#storyLink"),
   chineseTab: document.querySelector("#chineseStoryTab"),
   greekTab: document.querySelector("#greekStoryTab"),
   heroName: document.querySelector("#heroConstellationName"),
@@ -335,6 +337,10 @@ function renderDetails() {
   dom.favoriteButton.setAttribute("aria-pressed", String(isFavorite));
   dom.favoriteButton.setAttribute("aria-label", isFavorite ? `取消收藏${item.name}` : `收藏${item.name}`);
   dom.favoriteButton.title = isFavorite ? "取消收藏" : "收藏星座";
+  const storyUrl = new URL("stories.html", window.location.href);
+  storyUrl.searchParams.set("constellation", item.id);
+  storyUrl.hash = "stories";
+  dom.storyLink.href = storyUrl.toString();
 }
 
 function formatRightAscension(longitude) {
@@ -432,7 +438,7 @@ function renderDossier() {
     .slice(0, 6);
   relatedTopics.forEach((topic) => {
     const link = document.createElement("a");
-    const url = new URL(window.location.href);
+    const url = new URL("stories.html", window.location.href);
     url.searchParams.set("topic", topic.id);
     url.hash = "story-library";
     link.href = url.toString();
@@ -565,16 +571,22 @@ function updateUrl(id) {
 function setConstellation(id, updateAddress = false, focusMap = true) {
   if (!CONSTELLATIONS.some((item) => item.id === id)) return;
   state.activeId = id;
-  renderList();
-  renderChart(focusMap);
-  renderDetails();
-  renderDossier();
-  renderStory();
-  renderStorySelector();
-  renderHeroReadout();
+  if (PAGE === "atlas") {
+    renderList();
+    renderChart(focusMap);
+    renderDetails();
+    renderDossier();
+  }
+  if (PAGE === "stories") {
+    renderStory();
+    renderStorySelector();
+  }
+  if (PAGE === "home") renderHeroReadout();
   if (updateAddress) {
     updateUrl(id);
-    document.title = `${activeConstellation().name}星图 · 天象志`;
+    document.title = PAGE === "stories"
+      ? `${activeConstellation().name}故事 · 天象志`
+      : `${activeConstellation().name}星图 · 天象志`;
   }
 }
 
@@ -1045,6 +1057,13 @@ function initializeCelestialAtlas() {
 }
 
 function selectConstellationFromFeature(id) {
+  if (PAGE !== "atlas") {
+    const url = new URL("atlas.html", window.location.href);
+    url.searchParams.set("constellation", id);
+    url.hash = "atlas";
+    window.location.href = url.toString();
+    return;
+  }
   setConstellation(id, true, true);
   const atlas = document.querySelector("#atlas");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1171,6 +1190,17 @@ function loadStoryLibrary() {
   return storyLoadPromise;
 }
 
+function loadStoryDataForAtlas() {
+  return loadFeatureScript(STORY_FEATURE_SCRIPTS[0])
+    .then(() => loadFeatureScript(STORY_FEATURE_SCRIPTS[1]))
+    .then(() => renderDossier())
+    .catch((error) => {
+      console.error(error);
+      storyLoadFailed = true;
+      renderDossier();
+    });
+}
+
 function loadObservingAssistant() {
   if (observingLoadPromise) return observingLoadPromise;
   const section = document.querySelector("#observe");
@@ -1193,37 +1223,34 @@ function loadObservingAssistant() {
   return observingLoadPromise;
 }
 
-function setupDeferredFeatures() {
+function redirectLegacyHomeRoute() {
+  if (PAGE !== "home") return false;
   const url = new URL(window.location.href);
-  const tasks = [
-    {
-      elements: [dom.relatedTopicLinks, document.querySelector("#story-library")],
-      load: loadStoryLibrary,
-      immediate: url.hash === "#story-library" || url.searchParams.has("topic"),
-    },
-    {
-      elements: [document.querySelector("#observe")],
-      load: loadObservingAssistant,
-      immediate: url.hash === "#observe" || ["loc", "lat", "dt"].some((key) => url.searchParams.has(key)),
-    },
-  ];
-  tasks.forEach((task) => {
-    const elements = task.elements.filter(Boolean);
-    if (!elements.length) return;
-    if (task.immediate || !("IntersectionObserver" in window)) {
-      task.load();
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      observer.disconnect();
-      task.load();
-    }, { rootMargin: "480px 0px" });
-    elements.forEach((element) => observer.observe(element));
-  });
+  let page = "";
+  let hash = url.hash;
+  if (url.searchParams.has("topic") || ["#stories", "#story-library"].includes(url.hash)) {
+    page = "stories.html";
+    hash = url.hash === "#stories" ? "#stories" : "#story-library";
+  } else if (
+    ["loc", "lat", "lon", "dt", "bortle", "gear"].some((key) => url.searchParams.has(key))
+    || url.hash === "#observe"
+  ) {
+    page = "observe.html";
+    hash = "#observe";
+  } else if (url.searchParams.has("constellation") || url.hash === "#atlas") {
+    page = "atlas.html";
+    hash = "#atlas";
+  }
+  if (!page) return false;
+  const target = new URL(page, url);
+  target.search = url.search;
+  target.hash = hash;
+  window.location.replace(target.toString());
+  return true;
 }
 
 function initialize() {
+  if (redirectLegacyHomeRoute()) return;
   if (CONSTELLATIONS.length === 0) {
     document.body.innerHTML = "<main class=\"noscript\">星座数据加载失败，请刷新页面或检查 data/constellations.js。</main>";
     return;
@@ -1231,18 +1258,29 @@ function initialize() {
   loadFavorites();
   readInitialConstellation();
   bindControls();
-  initializeCelestialAtlas();
-  renderList();
-  renderChart(true);
-  renderDetails();
-  renderDossier();
-  renderStory();
-  renderStorySelector();
-  renderHeroReadout();
-  setObserveSeason("winter");
+  dom.siteNav.querySelector(`[data-nav-page="${PAGE}"]`)?.setAttribute("aria-current", "page");
+  if (PAGE === "home") {
+    renderHeroReadout();
+    setupSkyCanvas();
+  }
+  if (PAGE === "atlas") {
+    initializeCelestialAtlas();
+    renderList();
+    renderChart(true);
+    renderDetails();
+    renderDossier();
+    loadStoryDataForAtlas();
+  }
+  if (PAGE === "stories") {
+    renderStory();
+    renderStorySelector();
+    loadStoryLibrary();
+  }
+  if (PAGE === "observe") {
+    setObserveSeason("winter");
+    loadObservingAssistant();
+  }
   setupRevealAnimations();
-  setupSkyCanvas();
-  setupDeferredFeatures();
   setupPwa();
 }
 

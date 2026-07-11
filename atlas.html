@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="天象志是一部可探索的中文星空图鉴，收录 88 星座、连续星图、今晚观测助手与跨文明故事专题。"
+      content="浏览 88 个现代星座、5044 颗恒星、星座边界与深空目标的中文互动全天星图。"
     />
     <meta name="theme-color" content="#090a0d" />
     <meta name="color-scheme" content="dark light" />
     <meta name="robots" content="index, follow" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <link rel="canonical" href="https://spectator7.github.io/stellar-atlas/" />
-    <meta property="og:title" content="天象志 · 可探索的星空图鉴" />
+    <link rel="canonical" href="https://spectator7.github.io/stellar-atlas/atlas.html" />
+    <meta property="og:title" content="全天星图 · 天象志" />
     <meta
       property="og:description"
-      content="探索 88 星座，生成当地今晚星空，并沿时间线阅读中国与世界的星空故事。"
+      content="浏览 88 个现代星座、5044 颗恒星、星座边界与深空目标的中文互动全天星图。"
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://spectator7.github.io/stellar-atlas/" />
+    <meta property="og:url" content="https://spectator7.github.io/stellar-atlas/atlas.html" />
     <meta property="og:site_name" content="天象志" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:image" content="https://spectator7.github.io/stellar-atlas/assets/social-preview.png" />
@@ -26,15 +26,18 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="天象志星图式分享预览" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="天象志 · 可探索的星空图鉴" />
-    <meta name="twitter:description" content="探索 88 星座，生成当地今晚星空，并阅读跨文明星空专题。" />
+    <meta name="twitter:title" content="全天星图 · 天象志" />
+    <meta name="twitter:description" content="浏览 88 个现代星座、5044 颗恒星、星座边界与深空目标的中文互动全天星图。" />
     <meta name="twitter:image" content="https://spectator7.github.io/stellar-atlas/assets/social-preview.png" />
     <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="manifest" href="site.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
     <script>document.documentElement.classList.add("js");</script>
-    <!-- PAGE_SCRIPTS -->
+    <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
+    <script src="assets/vendor/astronomy-engine-2.1.19.min.js" defer></script>
+    <script src="data/sky-atlas.js" defer></script>
+    <script src="sky-map.js" defer></script>
     <script src="data/constellations.js" defer></script>
     <script src="app.js" defer></script>
     <script type="application/ld+json">
@@ -53,9 +56,9 @@
         "codeRepository": "https://github.com/spectator7/stellar-atlas"
       }
     </script>
-    <title>天象志 · 可探索的星空图鉴</title>
+    <title>全天星图 · 天象志</title>
   </head>
-  <body data-page="home">
+  <body data-page="atlas">
     <a class="skip-link" href="#main">跳到主要内容</a>
 
     <header class="site-header" id="siteHeader">

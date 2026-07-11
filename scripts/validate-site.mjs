@@ -82,7 +82,7 @@ function localPathFromReference(reference, htmlFile) {
   return relativePath || ".";
 }
 
-function validateHtmlFile(relativePath, { seo = false } = {}) {
+function validateHtmlFile(relativePath, { seo = false, canonicalUrl = deployedUrl, page = null } = {}) {
   const html = read(relativePath);
   if (!html) return;
 
@@ -131,32 +131,34 @@ function validateHtmlFile(relativePath, { seo = false } = {}) {
   const ogImage = metaContent(tags, "property", "og:image");
   const twitterImage = metaContent(tags, "name", "twitter:image");
 
-  assert(htmlTag?.attributes.lang === "zh-CN", "index.html: html lang must be zh-CN");
-  assert(tags.some((tag) => tag.name === "meta" && "charset" in tag.attributes), "index.html: charset meta is required");
-  assert(Boolean(title), "index.html: a non-empty title is required");
-  assert(Boolean(metaContent(tags, "name", "viewport")), "index.html: viewport meta is required");
-  assert((metaContent(tags, "name", "description") || "").length >= 40, "index.html: description meta must be at least 40 characters");
-  assert(Boolean(metaContent(tags, "name", "theme-color")), "index.html: theme-color meta is required");
-  assert(/index\s*,?\s*follow/i.test(metaContent(tags, "name", "robots") || ""), "index.html: robots meta must allow index and follow");
-  assert(canonical === deployedUrl, `index.html: canonical must be ${deployedUrl}`);
-  assert(linkHref(tags, "manifest") === "site.webmanifest", "index.html: manifest link must reference site.webmanifest");
+  const bodyTag = tags.find((tag) => tag.name === "body");
+  assert(htmlTag?.attributes.lang === "zh-CN", `${relativePath}: html lang must be zh-CN`);
+  assert(tags.some((tag) => tag.name === "meta" && "charset" in tag.attributes), `${relativePath}: charset meta is required`);
+  assert(Boolean(title), `${relativePath}: a non-empty title is required`);
+  assert(Boolean(metaContent(tags, "name", "viewport")), `${relativePath}: viewport meta is required`);
+  assert((metaContent(tags, "name", "description") || "").length >= 40, `${relativePath}: description meta must be at least 40 characters`);
+  assert(Boolean(metaContent(tags, "name", "theme-color")), `${relativePath}: theme-color meta is required`);
+  assert(/index\s*,?\s*follow/i.test(metaContent(tags, "name", "robots") || ""), `${relativePath}: robots meta must allow index and follow`);
+  assert(canonical === canonicalUrl, `${relativePath}: canonical must be ${canonicalUrl}`);
+  assert(linkHref(tags, "manifest") === "site.webmanifest", `${relativePath}: manifest link must reference site.webmanifest`);
+  if (page) assert(bodyTag?.attributes["data-page"] === page, `${relativePath}: body data-page must be ${page}`);
 
   ["og:title", "og:description", "og:type", "og:url", "og:image"].forEach((property) => {
-    assert(Boolean(metaContent(tags, "property", property)), `index.html: ${property} meta is required`);
+    assert(Boolean(metaContent(tags, "property", property)), `${relativePath}: ${property} meta is required`);
   });
-  assert(ogUrl === deployedUrl, `index.html: og:url must be ${deployedUrl}`);
-  assert(/^https:\/\//i.test(ogImage || ""), "index.html: og:image must be an absolute HTTPS URL");
+  assert(ogUrl === canonicalUrl, `${relativePath}: og:url must be ${canonicalUrl}`);
+  assert(/^https:\/\//i.test(ogImage || ""), `${relativePath}: og:image must be an absolute HTTPS URL`);
 
   ["twitter:card", "twitter:title", "twitter:description", "twitter:image"].forEach((name) => {
-    assert(Boolean(metaContent(tags, "name", name)), `index.html: ${name} meta is required`);
+    assert(Boolean(metaContent(tags, "name", name)), `${relativePath}: ${name} meta is required`);
   });
-  assert(["summary", "summary_large_image"].includes(metaContent(tags, "name", "twitter:card")), "index.html: twitter:card must be summary or summary_large_image");
-  assert(/^https:\/\//i.test(twitterImage || ""), "index.html: twitter:image must be an absolute HTTPS URL");
+  assert(["summary", "summary_large_image"].includes(metaContent(tags, "name", "twitter:card")), `${relativePath}: twitter:card must be summary or summary_large_image`);
+  assert(/^https:\/\//i.test(twitterImage || ""), `${relativePath}: twitter:image must be an absolute HTTPS URL`);
 
   [ogImage, twitterImage].filter(Boolean).forEach((imageUrl) => {
     const localPath = localPathFromReference(imageUrl, relativePath);
     if (localPath) {
-      assert(fs.existsSync(path.resolve(projectRoot, localPath)), `index.html: social image is missing: ${imageUrl}`);
+      assert(fs.existsSync(path.resolve(projectRoot, localPath)), `${relativePath}: social image is missing: ${imageUrl}`);
     }
   });
 }
@@ -219,7 +221,10 @@ function validateDiscoveryFiles() {
   });
 }
 
-validateHtmlFile("index.html", { seo: true });
+validateHtmlFile("index.html", { seo: true, page: "home" });
+validateHtmlFile("atlas.html", { seo: true, canonicalUrl: `${deployedUrl}atlas.html`, page: "atlas" });
+validateHtmlFile("observe.html", { seo: true, canonicalUrl: `${deployedUrl}observe.html`, page: "observe" });
+validateHtmlFile("stories.html", { seo: true, canonicalUrl: `${deployedUrl}stories.html`, page: "stories" });
 validateHtmlFile("404.html");
 validateManifest();
 validateDiscoveryFiles();
@@ -229,7 +234,7 @@ if (failures.length) {
   process.exitCode = 1;
 } else {
   console.log(JSON.stringify({
-    htmlFiles: 2,
+    htmlFiles: 5,
     manifestShortcuts: 3,
     deployedUrl,
     status: "ok"
