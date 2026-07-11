@@ -57,6 +57,10 @@ const state = {
   showLines: true,
   showLabels: true,
   showGrid: false,
+  showBoundaries: false,
+  showDeepSky: false,
+  magnitudeLimit: 6,
+  hemisphere: "all",
   favorites: new Set(),
 };
 
@@ -69,9 +73,8 @@ const dom = {
   visibilityFilter: document.querySelector("#visibilityFilter"),
   resultCount: document.querySelector("#resultCount"),
   list: document.querySelector("#constellationList"),
-  chart: document.querySelector("#constellationChart"),
-  chartTitle: document.querySelector("#chartSvgTitle"),
-  chartDesc: document.querySelector("#chartSvgDesc"),
+  celestialMap: document.querySelector("#celestialMap"),
+  skyStage: document.querySelector("#skyStage"),
   chartName: document.querySelector("#chartName"),
   chartLatin: document.querySelector("#chartLatin"),
   chartCaption: document.querySelector("#chartCaption"),
@@ -85,6 +88,29 @@ const dom = {
   linesToggle: document.querySelector("#linesToggle"),
   labelsToggle: document.querySelector("#labelsToggle"),
   gridToggle: document.querySelector("#gridToggle"),
+  boundariesToggle: document.querySelector("#boundariesToggle"),
+  deepSkyToggle: document.querySelector("#deepSkyToggle"),
+  hemisphereFilter: document.querySelector("#hemisphereFilter"),
+  mapSeasonFilter: document.querySelector("#mapSeasonFilter"),
+  magnitudeRange: document.querySelector("#magnitudeRange"),
+  magnitudeValue: document.querySelector("#magnitudeValue"),
+  visibleStarSelect: document.querySelector("#visibleStarSelect"),
+  visibleStarList: document.querySelector("#visibleStarList"),
+  mapZoomIn: document.querySelector("#mapZoomIn"),
+  mapZoomOut: document.querySelector("#mapZoomOut"),
+  mapFocus: document.querySelector("#mapFocus"),
+  mapReset: document.querySelector("#mapReset"),
+  mapCenterCoordinates: document.querySelector("#mapCenterCoordinates"),
+  mapZoomReadout: document.querySelector("#mapZoomReadout"),
+  objectPopover: document.querySelector("#objectPopover"),
+  objectClose: document.querySelector("#objectClose"),
+  objectKicker: document.querySelector("#objectKicker"),
+  objectTitle: document.querySelector("#objectTitle"),
+  objectAlias: document.querySelector("#objectAlias"),
+  objectFacts: document.querySelector("#objectFacts"),
+  objectConstellation: document.querySelector("#objectConstellation"),
+  skyEmpty: document.querySelector("#skyEmpty"),
+  skyAnnouncer: document.querySelector("#skyAnnouncer"),
   storyCount: document.querySelector("#storyCount"),
   storyGlyph: document.querySelector("#storyGlyph"),
   storyStarName: document.querySelector("#storyStarName"),
@@ -121,6 +147,8 @@ const dom = {
   dossierMeta: document.querySelector("#dossierMeta"),
   sourceList: document.querySelector("#sourceList"),
 };
+
+let celestialAtlas;
 
 function activeConstellation() {
   return CONSTELLATIONS.find((item) => item.id === state.activeId) || CONSTELLATIONS[0];
@@ -206,119 +234,22 @@ function renderList() {
   });
 }
 
-function svgElement(tag, attributes = {}) {
-  const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
-  Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, String(value)));
-  return element;
-}
-
-function chartPoint(star) {
-  return {
-    x: 58 + star.x * 6.84,
-    y: 42 + star.y * 5.28,
-  };
-}
-
-function renderChart() {
+function renderChart(focusMap = false) {
+  if (!celestialAtlas) return;
   const item = activeConstellation();
-  const random = mulberry32(hashString(item.id));
-  dom.chart.replaceChildren();
-
-  const background = svgElement("g", { "aria-hidden": "true" });
-  for (let index = 0; index < 95; index += 1) {
-    const radius = random() > 0.91 ? 1.35 : random() > 0.7 ? 0.85 : 0.52;
-    const star = svgElement("circle", {
-      class: "background-star",
-      cx: 18 + random() * 764,
-      cy: 18 + random() * 584,
-      r: radius,
-      opacity: 0.2 + random() * 0.48,
-    });
-    background.append(star);
-  }
-  dom.chart.append(background);
-
-  if (state.showGrid) {
-    const grid = svgElement("g", { "aria-hidden": "true" });
-    [100, 220, 340, 460, 580, 700].forEach((x, index) => {
-      grid.append(svgElement("line", { class: "chart-grid-line", x1: x, y1: 18, x2: x, y2: 602 }));
-      const label = svgElement("text", { class: "coordinate-label", x: x + 5, y: 32 });
-      label.textContent = `${(index * 4 + 2).toString().padStart(2, "0")}h`;
-      grid.append(label);
-    });
-    [100, 205, 310, 415, 520].forEach((y, index) => {
-      grid.append(svgElement("line", { class: "chart-grid-line", x1: 18, y1: y, x2: 782, y2: y }));
-      const label = svgElement("text", { class: "coordinate-label", x: 24, y: y - 7 });
-      label.textContent = `${60 - index * 30}°`;
-      grid.append(label);
-    });
-    dom.chart.append(grid);
-  }
-
-  if (state.showLines) {
-    const lines = svgElement("g", { "aria-hidden": "true" });
-    item.edges.forEach(([from, to]) => {
-      const start = chartPoint(item.stars[from]);
-      const end = chartPoint(item.stars[to]);
-      lines.append(svgElement("line", {
-        class: "constellation-line",
-        x1: start.x,
-        y1: start.y,
-        x2: end.x,
-        y2: end.y,
-      }));
-    });
-    dom.chart.append(lines);
-  }
-
-  const starGroup = svgElement("g");
-  const labeledStarIndexes = new Set(
-    item.stars
-      .map((star, index) => ({ index, mag: star.mag }))
-      .sort((left, right) => left.mag - right.mag)
-      .slice(0, 9)
-      .map((entry) => entry.index),
-  );
-  item.stars.forEach((star, starIndex) => {
-    const point = chartPoint(star);
-    const radius = Math.max(2.5, 7.3 - star.mag * 1.12);
-    const halo = svgElement("circle", {
-      class: "constellation-star-halo",
-      cx: point.x,
-      cy: point.y,
-      r: radius + 6,
-    });
-    const dot = svgElement("circle", {
-      class: "constellation-star",
-      cx: point.x,
-      cy: point.y,
-      r: radius,
-    });
-    const hit = svgElement("circle", {
-      class: "star-hit",
-      cx: point.x,
-      cy: point.y,
-      r: 17,
-      tabindex: 0,
-      role: "img",
-      "aria-label": `${star.zh}，${star.name}，视星等 ${star.mag}`,
-    });
-    const title = svgElement("title");
-    title.textContent = `${star.zh} · ${star.name} · 视星等 ${star.mag}`;
-    hit.append(title);
-    starGroup.append(halo, dot, hit);
-
-    if (state.showLabels && labeledStarIndexes.has(starIndex)) {
-      const label = svgElement("text", {
-        class: "star-label",
-        x: point.x + 13,
-        y: point.y - 11,
-      });
-      label.textContent = star.zh;
-      starGroup.append(label);
-    }
+  celestialAtlas.setLayers({
+    lines: state.showLines,
+    labels: state.showLabels,
+    grid: state.showGrid,
+    boundaries: state.showBoundaries,
+    deepSky: state.showDeepSky,
   });
-  dom.chart.append(starGroup);
+  celestialAtlas.setFilters({
+    magnitude: state.magnitudeLimit,
+    hemisphere: state.hemisphere,
+    season: state.season,
+  });
+  celestialAtlas.setSelected(item.abbr, { focus: focusMap });
 }
 
 function renderDetails() {
@@ -327,8 +258,6 @@ function renderDetails() {
   dom.chartName.textContent = item.name;
   dom.chartLatin.textContent = item.latin;
   dom.chartCaption.textContent = item.caption;
-  dom.chartTitle.textContent = `${item.name}星图`;
-  dom.chartDesc.textContent = `显示${item.name}主要恒星与传统连线的示意星图。`;
   dom.detailNumber.textContent = padNumber(index + 1);
   dom.detailTitle.textContent = item.title;
   dom.detailSummary.textContent = item.summary;
@@ -494,11 +423,11 @@ function updateUrl(id) {
   }
 }
 
-function setConstellation(id, updateAddress = false) {
+function setConstellation(id, updateAddress = false, focusMap = true) {
   if (!CONSTELLATIONS.some((item) => item.id === id)) return;
   state.activeId = id;
   renderList();
-  renderChart();
+  renderChart(focusMap);
   renderDetails();
   renderDossier();
   renderStory();
@@ -566,6 +495,19 @@ function readInitialConstellation() {
   }
 }
 
+function applySeasonFilter(season) {
+  if (season !== "all" && !SEASONS[season]) return;
+  state.season = season;
+  dom.seasonFilter.querySelectorAll("button[data-season]").forEach((button) => {
+    const isActive = button.dataset.season === season;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  dom.mapSeasonFilter.value = season;
+  renderList();
+  renderChart();
+}
+
 function bindControls() {
   dom.search.addEventListener("input", (event) => {
     state.search = event.target.value;
@@ -575,13 +517,19 @@ function bindControls() {
   dom.seasonFilter.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-season]");
     if (!button) return;
-    state.season = button.dataset.season;
-    dom.seasonFilter.querySelectorAll("button").forEach((item) => {
-      const isActive = item === button;
-      item.classList.toggle("is-active", isActive);
-      item.setAttribute("aria-pressed", String(isActive));
-    });
-    renderList();
+    applySeasonFilter(button.dataset.season);
+  });
+
+  dom.mapSeasonFilter.addEventListener("change", (event) => applySeasonFilter(event.target.value));
+  dom.hemisphereFilter.addEventListener("change", (event) => {
+    state.hemisphere = event.target.value;
+    renderChart();
+  });
+
+  dom.magnitudeRange.addEventListener("input", (event) => {
+    state.magnitudeLimit = Number(event.target.value);
+    dom.magnitudeValue.textContent = `+${state.magnitudeLimit.toFixed(1)}`;
+    renderChart();
   });
 
   dom.visibilityFilter.addEventListener("change", (event) => {
@@ -601,6 +549,19 @@ function bindControls() {
     state.showGrid = dom.gridToggle.checked;
     renderChart();
   });
+  dom.boundariesToggle.addEventListener("change", () => {
+    state.showBoundaries = dom.boundariesToggle.checked;
+    renderChart();
+  });
+  dom.deepSkyToggle.addEventListener("change", () => {
+    state.showDeepSky = dom.deepSkyToggle.checked;
+    renderChart();
+  });
+
+  dom.mapZoomIn.addEventListener("click", () => celestialAtlas?.zoomBy(1.35, true));
+  dom.mapZoomOut.addEventListener("click", () => celestialAtlas?.zoomBy(1 / 1.35, true));
+  dom.mapFocus.addEventListener("click", () => celestialAtlas?.focusSelected());
+  dom.mapReset.addEventListener("click", () => celestialAtlas?.reset(true));
 
   dom.favoriteButton.addEventListener("click", () => {
     const item = activeConstellation();
@@ -827,6 +788,49 @@ function setupSkyCanvas() {
   requestAnimationFrame(draw);
 }
 
+function initializeCelestialAtlas() {
+  const skyData = window.SKY_ATLAS;
+  if (!window.CelestialAtlas || !window.d3 || !skyData?.stars?.length) {
+    dom.skyEmpty.hidden = false;
+    dom.skyEmpty.textContent = "全天星图数据加载失败，请刷新页面后重试。";
+    return;
+  }
+
+  try {
+    celestialAtlas = new window.CelestialAtlas({
+      canvas: dom.celestialMap,
+      stage: dom.skyStage,
+      data: skyData,
+      constellations: CONSTELLATIONS,
+      dom: {
+        visibleStarSelect: dom.visibleStarSelect,
+        visibleStarList: dom.visibleStarList,
+        mapCenterCoordinates: dom.mapCenterCoordinates,
+        mapZoomReadout: dom.mapZoomReadout,
+        objectPopover: dom.objectPopover,
+        objectClose: dom.objectClose,
+        objectKicker: dom.objectKicker,
+        objectTitle: dom.objectTitle,
+        objectAlias: dom.objectAlias,
+        objectFacts: dom.objectFacts,
+        objectConstellation: dom.objectConstellation,
+        skyEmpty: dom.skyEmpty,
+        skyAnnouncer: dom.skyAnnouncer,
+      },
+      onSelectConstellation: (id, options = {}) => {
+        setConstellation(id, true, Boolean(options.focus));
+      },
+      onStatus: (message) => {
+        dom.skyAnnouncer.textContent = message;
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    dom.skyEmpty.hidden = false;
+    dom.skyEmpty.textContent = "星图引擎初始化失败，请检查浏览器控制台。";
+  }
+}
+
 function initialize() {
   if (CONSTELLATIONS.length === 0) {
     document.body.innerHTML = "<main class=\"noscript\">星座数据加载失败，请刷新页面或检查 data/constellations.js。</main>";
@@ -835,8 +839,9 @@ function initialize() {
   loadFavorites();
   readInitialConstellation();
   bindControls();
+  initializeCelestialAtlas();
   renderList();
-  renderChart();
+  renderChart(true);
   renderDetails();
   renderDossier();
   renderStory();

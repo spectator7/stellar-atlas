@@ -18,7 +18,11 @@
     <link rel="manifest" href="site.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
     <script>document.documentElement.classList.add("js");</script>
+    <script src="assets/vendor/d3-7.9.0.min.js" defer></script>
+    <script src="assets/vendor/astronomy-engine-2.1.19.min.js" defer></script>
+    <script src="data/sky-atlas.js" defer></script>
     <script src="data/constellations.js" defer></script>
+    <script src="sky-map.js" defer></script>
     <script src="app.js" defer></script>
     <title>天象志 · 可探索的星空图鉴</title>
   </head>
@@ -148,25 +152,95 @@
                   <input id="gridToggle" type="checkbox" />
                   <span>网格</span>
                 </label>
+                <label class="layer-toggle">
+                  <input id="boundariesToggle" type="checkbox" />
+                  <span>边界</span>
+                </label>
+                <label class="layer-toggle">
+                  <input id="deepSkyToggle" type="checkbox" />
+                  <span>深空</span>
+                </label>
                 <button id="favoriteButton" class="icon-button light" type="button" title="收藏星座" aria-label="收藏星座" aria-pressed="false">☆</button>
               </div>
             </div>
 
+            <div class="sky-filterbar" aria-label="星图筛选与导航">
+              <label class="sky-select-control">
+                <span>天球半球</span>
+                <select id="hemisphereFilter">
+                  <option value="all">全天</option>
+                  <option value="north">北天</option>
+                  <option value="equatorial">赤道天区</option>
+                  <option value="south">南天</option>
+                </select>
+              </label>
+
+              <label class="sky-select-control">
+                <span>北半球季节</span>
+                <select id="mapSeasonFilter">
+                  <option value="all">全年</option>
+                  <option value="spring">春季</option>
+                  <option value="summer">夏季</option>
+                  <option value="autumn">秋季</option>
+                  <option value="winter">冬季</option>
+                </select>
+              </label>
+
+              <label class="magnitude-control" for="magnitudeRange">
+                <span>极限星等 <output id="magnitudeValue" for="magnitudeRange">+6.0</output></span>
+                <input id="magnitudeRange" type="range" min="1" max="6" step="0.5" value="6" />
+              </label>
+
+              <label class="sky-select-control named-star-control">
+                <span>当前视野亮星</span>
+                <select id="visibleStarSelect" aria-describedby="skyInstructions">
+                  <option value="">暂无可选亮星</option>
+                </select>
+              </label>
+            </div>
+
             <figure class="chart-frame">
-              <svg
-                id="constellationChart"
-                viewBox="0 0 800 620"
-                role="img"
-                aria-labelledby="chartSvgTitle chartSvgDesc"
-              >
-                <title id="chartSvgTitle">猎户座星图</title>
-                <desc id="chartSvgDesc">显示猎户座主要恒星与传统连线的示意星图。</desc>
-              </svg>
+              <div class="sky-stage" id="skyStage">
+                <canvas
+                  id="celestialMap"
+                  tabindex="0"
+                  role="img"
+                  aria-label="可缩放、拖动和选择天体的全天星图"
+                  aria-describedby="skyInstructions"
+                >浏览器不支持 Canvas，请使用当前视野亮星菜单浏览。</canvas>
+
+                <div class="sky-zoom-controls" role="group" aria-label="星图视野控制">
+                  <button id="mapZoomIn" type="button" title="放大星图" aria-label="放大星图">+</button>
+                  <button id="mapZoomOut" type="button" title="缩小星图" aria-label="缩小星图">−</button>
+                  <button id="mapFocus" type="button" title="聚焦当前星座" aria-label="聚焦当前星座">◎</button>
+                  <button id="mapReset" type="button" title="重置全天视野" aria-label="重置全天视野">⌂</button>
+                </div>
+
+                <div class="sky-hud" aria-hidden="true">
+                  <span id="mapCenterCoordinates">RA 06h 00m · Dec +00°</span>
+                  <span id="mapZoomReadout">1.0×</span>
+                </div>
+
+                <aside class="object-popover" id="objectPopover" role="dialog" aria-labelledby="objectTitle" hidden>
+                  <button id="objectClose" class="object-close" type="button" title="关闭天体资料" aria-label="关闭天体资料">×</button>
+                  <p class="object-kicker" id="objectKicker">恒星资料</p>
+                  <h4 id="objectTitle">天体名称</h4>
+                  <p class="object-alias" id="objectAlias"></p>
+                  <dl id="objectFacts"></dl>
+                  <button id="objectConstellation" class="text-button object-constellation-link" type="button">打开所属星座档案</button>
+                </aside>
+
+                <p id="skyEmpty" class="sky-empty" hidden>当前筛选条件下没有可绘制的天体。</p>
+              </div>
               <figcaption>
                 <span id="chartCaption">猎户座最醒目的标志，是几乎排成直线的“腰带三星”。</span>
-                <span class="chart-scale">J2000 星位</span>
+                <span class="chart-scale" id="mapEpoch">J2000 星位 · 北上东左</span>
               </figcaption>
             </figure>
+
+            <p id="skyInstructions" class="visually-hidden">方向键移动星图，加减键缩放，Home 键重置视野，回车选择光标附近恒星，Escape 键关闭资料。</p>
+            <p id="skyAnnouncer" class="visually-hidden" aria-live="polite"></p>
+            <ol id="visibleStarList" class="visually-hidden"></ol>
           </div>
 
           <aside class="atlas-detail" aria-labelledby="detailTitle">
@@ -338,8 +412,8 @@
         <p>一个关于星图、故事与夜空观察的开源网页项目。</p>
       </div>
       <div class="footer-meta">
-        <p>STAR ATLAS · NORTHERN HEMISPHERE</p>
-        <p>星图为识别示意，不用于精密天文定位。</p>
+        <p>STAR ATLAS · ALL-SKY J2000</p>
+        <p>星位采用 J2000 赤道坐标；当前日期坐标用于参考。</p>
       </div>
     </footer>
 

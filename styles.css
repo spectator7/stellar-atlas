@@ -40,7 +40,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -709,6 +710,8 @@ h3 {
   display: flex;
   align-items: center;
   gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .layer-toggle {
@@ -744,6 +747,63 @@ h3 {
   outline-offset: 3px;
 }
 
+.sky-filterbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.sky-select-control,
+.magnitude-control {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.sky-select-control > span,
+.magnitude-control > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sky-select-control select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper-bright);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.magnitude-control {
+  padding: 7px 10px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper-bright);
+}
+
+.magnitude-control output {
+  color: var(--copper-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.magnitude-control input {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--teal-dark);
+  cursor: pointer;
+}
+
 .chart-frame {
   position: relative;
   overflow: hidden;
@@ -753,10 +813,175 @@ h3 {
   box-shadow: 0 24px 54px rgba(34, 28, 23, 0.16);
 }
 
-#constellationChart {
-  width: 100%;
-  aspect-ratio: 800 / 620;
+.sky-stage {
+  position: relative;
+  height: clamp(520px, 62vh, 680px);
+  min-height: 520px;
+  overflow: hidden;
   background: #0d0f14;
+}
+
+#celestialMap {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  background: #0d0f14;
+  cursor: grab;
+  touch-action: none;
+}
+
+#celestialMap.is-dragging {
+  cursor: grabbing;
+}
+
+#celestialMap:focus-visible {
+  outline-offset: -4px;
+}
+
+.sky-zoom-controls {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.sky-zoom-controls button,
+.object-close {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius);
+  background: rgba(16, 19, 25, 0.94);
+  color: var(--white);
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sky-zoom-controls button:hover,
+.object-close:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.sky-hud {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(235, 241, 238, 0.65);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.sky-hud span {
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(8, 10, 14, 0.72);
+}
+
+.object-popover {
+  position: absolute;
+  z-index: 5;
+  width: min(310px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  padding: 18px;
+  overflow: auto;
+  border: 1px solid rgba(216, 171, 95, 0.5);
+  border-radius: var(--radius);
+  background: rgba(17, 19, 25, 0.98);
+  color: var(--white);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+}
+
+.object-popover[hidden] {
+  display: none;
+}
+
+.object-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  font-size: 19px;
+}
+
+.object-kicker {
+  padding-right: 38px;
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.object-popover h4 {
+  margin: 5px 40px 0 0;
+  font-family: "Songti SC", SimSun, Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.object-alias {
+  min-height: 20px;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+}
+
+.object-popover dl {
+  margin-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.object-popover dl div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+}
+
+.object-popover dt {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.object-popover dd {
+  color: rgba(255, 255, 255, 0.86);
+  overflow-wrap: anywhere;
+}
+
+.object-constellation-link {
+  margin-top: 15px;
+  border-bottom-color: rgba(216, 171, 95, 0.7);
+  color: var(--gold);
+}
+
+.sky-empty {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: min(300px, calc(100% - 40px));
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .chart-frame figcaption {
@@ -1608,6 +1833,11 @@ h3 {
     align-self: end;
   }
 
+  .sky-stage {
+    height: clamp(500px, 60vh, 640px);
+    min-height: 500px;
+  }
+
   .story-layout {
     grid-template-columns: 210px minmax(360px, 1fr) 160px;
     gap: 42px;
@@ -1731,6 +1961,10 @@ h3 {
   .chart-actions {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .sky-filterbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .story-layout {
@@ -1893,6 +2127,7 @@ h3 {
   }
 
   .chart-toolbar {
+    display: grid;
     align-items: flex-start;
     margin-top: 16px;
   }
@@ -1902,18 +2137,60 @@ h3 {
   }
 
   .chart-actions {
-    max-width: 175px;
+    max-width: none;
+    justify-content: flex-start;
   }
 
   .layer-toggle span {
-    min-width: 43px;
-    height: 32px;
+    min-width: 48px;
+    height: 44px;
   }
 
   .icon-button.light {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .sky-filterbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sky-select-control select {
+    height: 44px;
+  }
+
+  .magnitude-control {
+    min-height: 44px;
+  }
+
+  .sky-stage {
+    height: clamp(430px, 60svh, 560px);
+    min-height: 430px;
+  }
+
+  .object-popover {
+    top: auto !important;
+    right: 0;
+    bottom: 0;
+    left: 0 !important;
+    width: 100%;
+    max-height: 54%;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .object-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sky-hud {
+    right: 66px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .chart-frame figcaption {
@@ -2105,6 +2382,21 @@ h3 {
 
   .chart-toolbar {
     display: grid;
+  }
+
+  .sky-filterbar {
+    grid-template-columns: 1fr;
+  }
+
+  .sky-stage {
+    height: clamp(390px, 57svh, 500px);
+    min-height: 390px;
+  }
+
+  .sky-hud {
+    display: grid;
+    right: 64px;
+    justify-content: start;
   }
 
   .catalog-filter-row {
